@@ -1,0 +1,222 @@
+#+title: MayaDevGenI: Project Roadmap
+#+author: MayaDevGenI Collaboration
+#+startup: overview
+
+
+* Overview
+
+This document tracks the development roadmap for MayaDevGenI—a framework for
+principled human-machine collaboration.
+
+*Scope*: We fulfill the promises made in [[file:../develop/develop.org][develop.org]], building on the
+philosophical foundations in [[file:manifesto.org][manifesto.org]].
+
+*Status Legend*:
+| Symbol | Meaning           |
+|--------+-------------------|
+| 🔴     | Not started       |
+| 🟡     | In progress       |
+| 🟢     | Complete          |
+| ⏸️      | Blocked/On hold   |
+
+
+* Completed Foundations
+
+These components exist and are functionally complete:
+
+- 🟢 *Philosophy*: [[file:manifesto.org][Manifesto]] — stance on human-machine collaboration
+- 🟢 *Theory*: [[file:../develop/develop.org::*System-Prompt Engineering][System-Prompt Engineering]] — statistical physics lens
+- 🟢 *Tutorial*: [[file:../develop/system-prompt/tutorial/index.org][System-Prompt Tutorial]] — 7 chapters + template
+- 🟢 *Tool-Use*: [[file:../develop/tool-use/tool-use-tutorial.org][Tool-Use Tutorial]] — decision trees, patterns, case studies
+- 🟢 *Library*: Three working system-prompts (thinking-together, collaborative-intelligence, mayadevgeni)
+
+
+* Epics
+:PROPERTIES:
+:VISIBILITY: children
+:END:
+
+** EPIC-1: Context Management Framework 🔴
+:PROPERTIES:
+:EFFORT: Medium
+:PRIORITY: High
+:END:
+
+Develop the theory and practice of managing finite context windows in
+extended collaborations.
+
+*Stub location*: [[file:../develop/develop.org::*Context Management][develop.org § Context Management]]
+
+*** Tasks
+- [ ] Research: Survey existing approaches (gptel, aider, cursor, continue)
+- [ ] Theory: Develop information-theoretic model of context degradation
+- [ ] Document: Client-side context window strategies
+- [ ] Document: Summarization techniques (when, how, what to preserve)
+- [ ] Document: Decision framework: refresh vs. continue vs. new session
+- [ ] Practice: Worked examples with gptel
+
+*** Deliverables
+- Context management section in develop.org (replace stub)
+- Practical guidelines document
+- gptel configuration examples
+
+
+** EPIC-2: Project Memory System 🔴
+:PROPERTIES:
+:EFFORT: Medium
+:PRIORITY: High
+:END:
+
+Design patterns for maintaining continuity across sessions—the LLM's
+"long-term memory" problem.
+
+*Stub location*: [[file:../develop/develop.org::*Project Memory][develop.org § Project Memory]]
+
+*** Tasks
+- [ ] Research: Analyze CHANGELOG, AGENTS.md, session-log patterns
+- [ ] Design: Session log format (what to capture, how to structure)
+- [ ] Design: Project knowledge base structure
+- [ ] Document: "Catching up" protocols for new sessions
+- [ ] Document: When to persist vs. let go
+- [ ] Practice: Implement for MayaDevGenI itself (dogfooding)
+
+*** Deliverables
+- Project memory section in develop.org (replace stub)
+- Session log template
+- CHANGELOG pattern guide
+- MayaDevGenI's own CHANGELOG
+
+
+** EPIC-3: Agent Architecture Patterns 🔴
+:PROPERTIES:
+:EFFORT: High
+:PRIORITY: Medium
+:END:
+
+Articulate when and how to use single vs. multi-agent architectures,
+delegation patterns, and orchestration.
+
+*Stub location*: [[file:../develop/develop.org::*Agent Architecture][develop.org § Agent Architecture]]
+
+*** Tasks
+- [ ] Research: Survey agent patterns (researcher, executor, introspector, planner)
+- [ ] Theory: When single-agent suffices vs. multi-agent required
+- [ ] Document: Delegation decision framework
+- [ ] Document: Orchestrator patterns (supervisor, peer, hierarchical)
+- [ ] Document: Agent communication protocols
+- [ ] Document: Failure modes in multi-agent systems
+- [ ] Practice: Case study with gptel-agent
+
+*** Deliverables
+- Agent architecture section in develop.org (replace stub)
+- Decision tree for agent selection
+- Agent pattern catalog
+
+
+** EPIC-4: Evaluation and Iteration Framework 🔴
+:PROPERTIES:
+:EFFORT: High
+:PRIORITY: Medium
+:END:
+
+Methodology for testing, evaluating, and iterating on system-prompts
+and agent configurations.
+
+*Stub location*: [[file:../develop/develop.org::*Evaluation and Iteration][develop.org § Evaluation and Iteration]]
+
+*** Tasks
+- [ ] Research: Behavioral testing approaches for LLM systems
+- [ ] Design: Test case structure (prompt → expected behavior → actual)
+- [ ] Design: Regression detection methodology
+- [ ] Document: Refinement loop process
+- [ ] Document: Metrics that matter (and those that mislead)
+- [ ] Tool: Evaluation harness concept (even if manual)
+- [ ] Practice: Test suite for MayaDevGenI system-prompts
+
+*** Deliverables
+- Evaluation section in develop.org (replace stub)
+- Behavioral test template
+- MayaDevGenI prompt test suite
+
+
+** EPIC-5: Integration Patterns 🔴
+:PROPERTIES:
+:EFFORT: Medium
+:PRIORITY: Low
+:END:
+
+Practical guidance for integrating LLM collaboration into existing
+workflows and tools.
+
+*Stub location*: [[file:../develop/develop.org::*Integration Patterns][develop.org § Integration Patterns]]
+
+*** Tasks
+- [ ] Document: Emacs/gptel integration patterns
+- [ ] Document: Repository conventions (AGENTS.md, CLAUDE.md, .cursorrules)
+- [ ] Document: Workflow integration (when to invoke, how to hand off)
+- [ ] Document: Editor-agnostic principles
+- [ ] Practice: MayaDevGenI gptel configuration
+
+*** Deliverables
+- Integration patterns section in develop.org (replace stub)
+- gptel configuration guide
+- Repository convention templates
+
+
+** EPIC-6: Documentation Polish 🟡
+:PROPERTIES:
+:EFFORT: Low
+:PRIORITY: Low
+:END:
+
+Review, validate, and polish existing documentation for consistency
+and completeness.
+
+*** Tasks
+- [ ] Review: All 7 tutorial chapters for completeness
+- [ ] Review: Tool-use tutorial for consistency with develop.org
+- [ ] Review: System-prompt library documentation
+- [ ] Harmonize: Cross-references between documents
+- [ ] Add: Navigation aids (index, glossary if needed)
+
+*** Deliverables
+- Reviewed and polished tutorial
+- Consistent cross-references
+- Complete index.org files where missing
+
+
+* Sequencing Notes
+
+*Suggested order*:
+
+1. *EPIC-1 & EPIC-2* (parallel) — These are foundational for sustained
+   collaboration. Without context management and project memory, long
+   projects degrade.
+
+2. *EPIC-4* — Evaluation framework needed before we can confidently
+   iterate on agents.
+
+3. *EPIC-3* — Agent architecture builds on evaluation capability.
+
+4. *EPIC-5* — Integration patterns are downstream of everything else.
+
+5. *EPIC-6* — Polish happens throughout but finishes last.
+
+*Dependencies*:
+- EPIC-3 benefits from EPIC-4 (test agents as you design them)
+- EPIC-5 benefits from all others (integration requires mature patterns)
+
+
+* Progress Log
+
+| Date | Epic | Action | Notes |
+|------+------+--------+-------|
+|      |      |        |       |
+
+/Add entries as work progresses./
+
+
+* LocalVariables :noexport:
+# :Local Variables:
+# org-startup-folded: overview
+# :End:

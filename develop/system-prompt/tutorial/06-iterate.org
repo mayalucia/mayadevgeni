@@ -1,0 +1,54 @@
+#+title: The Practice: Iterative Refinement
+
+A system-prompt is not written; it is evolved. The process resembles experimental science more than engineering—you form hypotheses, test them empirically, and refine based on observation. This final section describes the practice.
+
+* The Experimental Loop
+
+** 1. Draft
+Begin with a candidate prompt based on the principles in [[file:04-craft.org][Crafting Your System-Prompt]]. Don't aim for perfection; aim for a reasonable starting point. Explicit is better than clever. Clear is better than complete.
+
+** 2. Test
+Engage in representative conversations. Don't just try your best-case scenarios—probe the edges. Ask questions that might reveal weaknesses. Push into areas where you're uncertain how the model will behave. Vary your interaction style.
+
+** 3. Observe
+Note where behavior aligns with intent and where it diverges. Be specific: not "it didn't work well" but "it gave direct answers when I wanted it to ask questions" or "it was verbose when I needed concision." Specific observations enable targeted diagnosis.
+
+** 4. Diagnose
+Consult the [[file:05-failures.org][failure modes]]. Which pattern matches what you observed? Is the prompt under-specified, over-specified, internally contradictory? Is attention overloaded? Is the persona drifting over turns? Name the problem before attempting a fix.
+
+** 5. Revise
+Make targeted adjustments. Change one thing at a time when possible—this isolates the effect of each modification. If you change multiple aspects simultaneously and behavior improves, you won't know which change mattered.
+
+** 6. Repeat
+Return to testing. The revision may solve one problem while creating another. Iteration continues until the prompt reliably produces desired behavior across your representative test cases.
+
+* What "Good Enough" Looks Like
+
+Perfection is not the goal. You're seeking a prompt that:
+
+- Produces desired behavior in the /common/ cases
+- Fails gracefully in edge cases (predictably, not catastrophically)
+- Leaves room for the conversation to develop naturally
+- Remains stable over multi-turn interactions
+
+When you reach this point, stop refining. Further optimization yields diminishing returns. Use the prompt, and let real conversations teach you what adjustments might help next.
+
+* Learning the Medium
+
+The iterative process teaches you more than prompt-writing. Each failure mode reveals something about how the model processes language—what it attends to, what it ignores, how it balances competing constraints. Over time, you develop intuition for the medium itself.
+
+This intuition is valuable beyond any single prompt. You learn to anticipate how phrasing choices will land, to sense when a prompt is too heavy or too light, to feel the difference between productive constraint and unproductive rigidity. You learn to work /with/ the model's tendencies rather than against them.
+
+* Beginning
+
+You have the concepts: the mechanics of messages and roles, the interpretive framework of potential landscapes, the craft principles of economy and density, the diagnostic categories of failure modes, and the practice of iterative refinement.
+
+Now: draft a prompt for a collaboration you actually want. Test it. Observe what happens. Adjust. The only way to develop fluency is through practice—through the accumulating experience of shaping conversations and noticing how they unfold.
+
+The system-prompt is your first word in a dialogue. Make it count, then let the conversation teach you the rest.
+
+For some collaborations, a simple prompt suffices. For others—long-term partnerships with specific epistemic standards, explicit priority orderings, or complex interaction patterns—you may need more structure.
+
+#+begin_quote
+/Next: [[file:07-scaling.org][Scaling Up: Complex System-Prompts]]/
+#+end_quote

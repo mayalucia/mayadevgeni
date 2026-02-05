@@ -1,0 +1,399 @@
+#+title: Developing MayaDevGenI
+#+subtitle: A Framework for Human–Machine Collaboration
+#+author: A Human–Machine Collaboration
+#+date: 2025
+#+property: header-args :tangle no
+
+* The MayaDevGenI Framework
+
+The [[file:../project/manifesto.org][manifesto]] poses a question: how do we recover productive friction when working with intelligence that is eager to please?
+
+This document develops a /framework/ for answering that question. The framework has multiple components:
+
+- *System-Prompt Engineering*: Shaping the LLM's behavior through carefully crafted initial constraints
+- *Tool Integration*: Enabling the LLM to act in the world—reading, searching, modifying
+- *Context Management*: Governing what information flows into and out of the conversation
+- *Project Memory*: Maintaining continuity across sessions and preserving learnings
+- *Agent Architecture*: Structuring single and multi-agent systems
+- *Evaluation and Iteration*: Testing, refining, and evolving the collaboration
+
+We begin with system-prompt engineering, drawing on statistical physics as a diagnostic lens. For hands-on practice, see the [[file:system-prompt/tutorial/index.org][system-prompt tutorial]]. For tool integration, see the [[file:tool-use/tool-use-tutorial.org][tool-use tutorial]].
+
+
+* System-Prompt Engineering
+
+A well-crafted system-prompt doesn't merely instruct; it /constrains the space of possible responses/, creating channels through which the conversation flows.
+
+We draw on statistical physics—not as metaphor, but as diagnostic tool. The concepts of potential landscapes, random walks, and phase transitions illuminate why some prompts succeed and others fail.
+
+** The Statistical Physics Lens
+
+*** Token Generation as Random Walk
+
+An LLM operates in a high-dimensional vector space where token generation can be viewed as a random walk. Each token choice depends probabilistically on all preceding tokens, with the probability distribution shaped by the model's training and the current context.
+
+The system-prompt occupies the initial segment of the sequence. It defines the /potential landscape/ for all subsequent tokens—lowering energy states for desired behaviors (rigor, conciseness, epistemic honesty) and raising them for unwanted ones (hallucination, verbosity, sycophancy).
+
+We craft a system-prompt so that conversational trajectories fall naturally into desired regions of the output space, rather than wandering via Brownian motion into generic responses.
+
+*** The Mean Field of Attention
+
+Modern LLMs use the Transformer architecture, where every token interacts with every other through self-attention. The system-prompt tokens retain high attention weights throughout the conversation—they act as a persistent /mean field/ or boundary condition influencing every generated token.
+
+This has implications:
+
+- /Position matters/: Early tokens in the system-prompt receive more consistent attention. Place critical constraints prominently.
+
+- /Structure aids attention/: XML tags and section headers act as attention anchors, helping the model locate and maintain focus on relevant constraints.
+
+- /Redundancy creates robustness/: Critical constraints appearing in multiple forms create multiple attractors. If one mention loses salience, others persist.
+
+*** Temperature and the Energy Landscape
+
+The system-prompt shapes the probability distribution; temperature controls how we sample from it.
+
+| Temperature  | Behavior                                     | Character                |
+|--------------+----------------------------------------------+--------------------------|
+| Low (~0.3)   | Near-deterministic, high-probability tokens  | Focused, predictable     |
+| Medium (~0.7) | Balanced exploration and coherence          | Adaptive, natural        |
+| High (~1.2)  | Flattened distribution, rare tokens possible | Creative, unpredictable  |
+
+The interplay is subtle. A highly constrained prompt at low temperature yields brittle predictability. The same prompt at higher temperature retains directional bias while permitting exploration. For collaboration, we seek enough constraint for coherence, enough stochasticity for surprise.
+
+
+** Dynamics Over Time
+
+*** The Dilution Problem
+
+A conversation is not a single query but an evolving trajectory. With each exchange, the context grows, and attention must distribute across more tokens.
+
+In early turns, the system-prompt dominates—the conversation has little momentum. As dialogue develops, accumulated messages exert their own pull. Over very long sessions, even strong system-prompts see their influence diluted.
+
+*** Strategies for Persistence
+
+Several strategies counter dilution:
+
+- /Self-reinforcing patterns/: If early assistant responses embody the desired behavior, they become additional attractors, compounding the prompt's effect.
+
+- /Periodic re-grounding/: Explicitly referencing the collaboration's purpose or principles mid-conversation refreshes the signal.
+
+- /Structured summarization/: Condensing prior context preserves relevant information while reducing noise.
+
+- /Behavioral consistency/: A prompt that produces consistent early behavior creates path-dependence that resists drift.
+
+The goal: maintain the mean field's strength as the token count grows.
+
+
+** Failure Modes
+
+Understanding how prompts fail illuminates what makes them succeed.
+
+*** Conflicting Instructions
+
+The prompt demands incompatible behaviors—exhaustive detail /and/ extreme brevity. The model oscillates or produces incoherent compromises. The probability landscape develops competing minima.
+
+/Diagnosis/: Responses that seem to switch personality mid-stream, or that satisfy one constraint while violating another.
+
+*** Over-Specification
+
+The prompt prescribes every aspect of response. For narrow tasks this works; for open collaboration it creates rigidity. The potential well is so deep and narrow that thermal fluctuations cannot escape.
+
+/Diagnosis/: Responses that feel mechanical, unable to adapt to novel contexts.
+
+*** Under-Specification
+
+The prompt is too vague. The model defaults to its prior distribution—a helpful but bland assistant persona. The landscape is flat; there are no clear attractors.
+
+/Diagnosis/: Generic responses that could come from any interaction.
+
+*** Semantic Overload
+
+The prompt is internally consistent but too dense. Attention distributes too thinly; some instructions effectively disappear. Entropy overwhelms information.
+
+/Diagnosis/: Inconsistent adherence—some constraints honored, others ignored unpredictably.
+
+
+** Architectural Strategies
+
+When simple prompts reach their limits—inconsistent behavior, role confusion, epistemic slippage—we need /organized complexity/: structure that the attention mechanism can parse and maintain.
+
+*** Sectioning for Attention
+
+Distinct sections act as attention anchors. Each addresses one dimension of behavior:
+
+| Section                 | Purpose                                  |
+|-------------------------+------------------------------------------|
+| =<identity>=            | Who the LLM is; frames the collaboration |
+| =<behavioral_attractors>= | What to optimize, what to avoid        |
+| =<epistemic_hygiene>=   | Standards for uncertainty and claims     |
+| =<priority_rules>=      | Explicit conflict resolution             |
+| =<failure_modes>=       | Patterns to actively counteract          |
+| =<boundaries>=          | Scope, safety, editorial authority       |
+
+*** XML Tags vs. Markdown Headers
+
+We use XML-style tags (=<role>=) rather than Markdown headers (=# Role=):
+
+1. /Hard boundaries/: Tags explicitly delimit scope, preventing instruction leakage.
+2. /Attention anchoring/: Models trained on code recognize tags as structural delimiters.
+3. /Namespace separation/: Clearly distinguishes system instructions from user content.
+
+*** Redundancy as Robustness
+
+Critical constraints should appear in multiple forms. "Epistemic honesty" might surface in:
+- =<behavioral_attractors>= as something to maintain
+- =<epistemic_hygiene>= as operational practice
+- =<priority_rules>= as second-highest priority
+
+The art: redundancy without contradiction. Say the same thing from different angles rather than repeating identical phrases.
+
+*** Explicit Priority Ordering
+
+Simple prompts leave conflict resolution to chance. Complex prompts make priorities explicit:
+
+1. System instructions and safety constraints
+2. Truthfulness and uncertainty disclosure
+3. Human's stated intent and goals
+4. Collaborative stance and tone
+5. Formatting and style preferences
+6. Completeness (prefer partial-but-correct over complete-but-fabricated)
+
+This transforms implicit heuristics into decision procedures.
+
+
+** The Costs of Complexity
+
+Complex prompts are not strictly superior. The tradeoffs:
+
+- /Token budget/: A 500-token prompt permanently occupies context space.
+- /Attention load/: More constraints means attention distributed more thinly.
+- /Rigidity risk/: More structure can mean less adaptability.
+- /Maintenance burden/: Complex prompts require systematic testing.
+
+*** When to Simplify
+
+Consider scaling back when:
+- The use case is narrow and well-defined
+- Conversations are short and self-contained
+- The model's default behavior is close to what you want
+- Token budget is constrained
+
+A 50-token prompt that works is better than a 500-token prompt that impresses.
+
+*** Compression Strategies
+
+When you need complex functionality in a smaller package:
+
+- /Factor into conversation/: Establish some constraints through early exchanges rather than the system-prompt.
+- /Rely on defaults/: Focus tokens on /departures/ from default behavior.
+- /Hierarchical compression/: State principles, not exhaustive rules.
+- /Defer to examples/: A single example often conveys more than paragraphs of instruction.
+
+
+** Testing and Iteration
+
+A system-prompt is not written; it is evolved. The initial draft is a hypothesis about what will produce desired behavior. Only empirical testing reveals whether the hypothesis holds.
+
+For detailed practice, see the [[file:system-prompt/tutorial/index.org][system-prompt tutorial]].
+
+
+* Tool Integration
+
+Tool use represents a phase transition in LLM interaction. Without tools, the LLM is a pure reasoning engine, transforming input tokens to output tokens. With tools, it becomes an /agent/—capable of perception (reading), planning (deciding which tools), and action (invoking tools).
+
+This shift requires new architectural thinking. The full treatment is in the [[file:tool-use/tool-use-tutorial.org][tool-use tutorial]]; here we summarize the key principles.
+
+** Decision Trees Over Capability Lists
+
+Effective tool-use prompts embed decision trees, not just capability lists. Before any action, the agent runs a mental checklist:
+
+#+begin_example
+Before ANY action:
+1. Is this multi-step? → Plan first
+2. Should I delegate? → Use specialized agent
+3. Do I need information? → Search/Read first
+4. Am I ready to act? → Proceed with appropriate tool
+#+end_example
+
+This "pre-flight checklist" pattern forces deliberation before action, reducing impulsive tool misuse.
+
+** The Tool Catalog Pattern
+
+Each tool needs consistent documentation:
+
+- *Purpose*: What the tool does
+- *When to use*: Conditions and patterns that trigger this tool
+- *When NOT to use*: Anti-patterns and alternatives (often more valuable than positive instructions)
+- *How to use*: Parameters, constraints, common patterns
+
+The =<when_not_to_use>= section is critical. LLMs tend to over-apply tools; explicit prohibitions correct this bias.
+
+** Tool Hierarchies
+
+When multiple tools could accomplish a task, establish explicit preferences:
+
+#+begin_example
+Specialized tool > General tool > Shell escape
+
+Specifically:
+  Read    > cat/head/tail
+  Grep    > grep/rg (shell)
+  Glob    > find/ls
+  Edit    > sed/awk
+#+end_example
+
+Rationale: specialized tools provide structured output, better error handling, and integrate with the agent's planning.
+
+** Failure Modes in Tool Use
+
+| Failure Mode        | Cause                              | Fix                                      |
+|---------------------+------------------------------------+------------------------------------------|
+| Over-Application    | No boundaries on tool use          | Strong =<when_not_to_use>= sections      |
+| Under-Application   | Too much "assistant" framing       | "Use tools. Don't describe—do."          |
+| Wrong Tool Selection | No hierarchy or decision procedure | Explicit hierarchy and pattern-matching  |
+| Context Explosion   | No cost awareness                  | Delegation rules for large result sets   |
+| Edit Failures       | Preconditions not enforced         | "MUST Read before Edit"                  |
+
+
+* Context Management
+:PROPERTIES:
+:CUSTOM_ID: context-management
+:END:
+
+/This section is a stub for future development./
+
+** Client-Side Context Windows
+
+- How context windows work in practice
+- The difference between system prompt, conversation history, and tool results
+- Managing the attention budget
+
+** Summarization Strategies
+
+- When to summarize vs. when to truncate
+- Automated summarization approaches
+- Preserving critical information while reducing noise
+
+** When to Refresh vs. Continue
+
+- Signs that a conversation has drifted too far
+- The cost of starting fresh vs. the cost of accumulated context
+- Hybrid approaches: partial refresh
+
+
+* Project Memory
+:PROPERTIES:
+:CUSTOM_ID: project-memory
+:END:
+
+/This section is a stub for future development./
+
+** Session Logs and Learnings
+
+- What to preserve from each session
+- Formats for capturing insights, decisions, and rationale
+- The role of this very document as living memory
+
+** The CHANGELOG Pattern
+
+- Recording what changed and why
+- Maintaining a textual history of the project's evolution
+- Making past decisions discoverable
+
+** Maintaining Continuity Across Sessions
+
+- How to "resume" a collaboration after time away
+- Briefing documents and session primers
+- The role of ORG files in persistent collaboration
+
+
+* Agent Architecture
+:PROPERTIES:
+:CUSTOM_ID: agent-architecture
+:END:
+
+/This section is a stub for future development./
+
+** Single Agent vs. Multi-Agent
+
+- When one agent suffices
+- When to decompose into specialized agents
+- The coordination overhead of multi-agent systems
+
+** Delegation Patterns
+
+- The researcher/executor/introspector pattern
+- Designing clean interfaces between agents
+- Trust and verification between agents
+
+** The Orchestrator Model
+
+- A primary agent that delegates to specialists
+- Managing context across agent boundaries
+- Aggregating results from multiple agents
+
+
+* Evaluation and Iteration
+:PROPERTIES:
+:CUSTOM_ID: evaluation
+:END:
+
+/This section is a stub for future development./
+
+** Behavioral Testing
+
+- Coverage testing: does each instruction produce its intended effect?
+- Stress testing: where does the system break?
+- Regression testing: do changes preserve existing behavior?
+
+** Regression Detection
+
+- Detecting when prompt changes cause behavioral regressions
+- A/B comparison methodologies
+- The challenge of evaluating open-ended collaboration
+
+** The Refinement Loop
+
+1. Draft a candidate configuration
+2. Engage in representative interactions
+3. Observe where behavior diverges from intent
+4. Diagnose: Is a constraint ignored? Too rigid? Conflicting?
+5. Revise as a perturbation to the system
+6. Iterate toward stable configuration
+
+Each failure mode reveals something about the underlying mechanics.
+
+
+* Integration Patterns
+:PROPERTIES:
+:CUSTOM_ID: integration
+:END:
+
+/This section is a stub for future development./
+
+** Editor Integration
+
+- Emacs and gptel: the current integration
+- The ORG file as collaboration medium
+- Babel blocks as executable artifacts
+
+** Repository Conventions
+
+- The =CLAUDE.md= / =AGENTS.md= pattern
+- Separating generic agent behavior from project-specific conventions
+- Making conventions discoverable by the agent
+
+** Workflow Integration
+
+- How MayaDevGenI fits into daily work
+- Session management and ritual
+- The collaboration as ongoing practice
+
+
+* Closing
+
+The MayaDevGenI framework extends beyond prompt engineering to encompass the full ecology of human–machine collaboration: how we shape behavior, enable action, manage information flow, preserve memory, architect agent systems, and iteratively refine the whole.
+
+The statistical physics lens helps us understand why things work or fail. The practical patterns give us tools for construction. But the framework is diagnostic and generative, not prescriptive. The actual craft requires iteration, observation, and—as the manifesto suggests—the willingness to encounter the grain of the material.
+
+The working synthesis of these principles lives in [[file:../mayadevgeni.org::*The Synthesized System-Prompt][the synthesized system-prompt]].

@@ -1,0 +1,391 @@
+#+title: MayaDevGenI-Agency: A Framework for Collaborative Intelligence
+#+author: mu2tau & Machine Collaborator
+#+date: <2025-01-21>
+#+startup: overview
+
+
+Traditional software ships as artifacts: executables, libraries, containers, configuration files. The user installs, runs, and operates within the software's predetermined capabilities. An /agency/, by contrast, ships as an /organization of collaborators/ - AI agents with defined roles, expertise domains, and interaction protocols. The "product" is not the code; it is the /capacity for guided scientific exploration/ that emerges from the collaboration. Thus we will develop =MayaDevGenI-Agency= as a =governance and orchestration layer= that enables a dynamic, role-based collaborative process: a structured ensemble of roles, protocols, and shared memory that can pursue open-ended inquiry alongside a human.
+
+
+This document defines the *core framework* for organizing LLM agents into a coherent /agency/ — a governance model for coordinated machine cognition that collaborates with a human principal.
+
+The framework is *domain-agnostic*. Applications (such as =MayaLucIA= for scientific exploration) import and specialize these patterns for their specific purposes.
+
+
+#+begin_table
+This is a profound shift:
+
+| Traditional Product              | Agency Model                                  |
+|----------------------------------+-----------------------------------------------|
+| User operates the software       | Agents operate /with/ the user                  |
+| Features are fixed at release    | Capabilities emerge from agent collaboration  |
+| Documentation teaches how to use | Agents teach through dialogue                 |
+| Bugs are code errors             | "Bugs" are misunderstandings to be clarified  |
+| Upgrade = new binary             | Upgrade = new agent, or refined agent prompts |
+#+end_table
+
+* What is an Agency?
+
+An agency is a *governance model for coordinated cognition*. It defines:
+
+| Aspect           | Description                                            |
+|------------------+--------------------------------------------------------|
+| *Role-bounded*     | Each agent has a defined scope and expertise           |
+| *Handoff-driven*   | Explicit protocols for transferring context            |
+| *Artifact-centric* | Memory lives in documents, code, data—not hidden state |
+| *Human-led*        | The human holds editorial authority and approval gates |
+| *Session-aware*    | Provenance tracked; continuity maintained across time  |
+
+
+** Core Principles
+
+1. *Role-Bounded Cognition*
+   - Each agent operates within a defined scope
+   - Expertise is focused, not diffuse
+   - Agents know when to hand off to others
+
+2. *Explicit Handoffs*
+   - Context transfer is deliberate and documented
+   - No hidden state passed between agents
+   - Handoff protocols define what information travels
+
+3. *Artifact-Centric Memory*
+   - The "memory" of the agency is its artifacts
+   - ORG documents, code files, datasets, logs
+   - Version-controlled, auditable, human-readable
+
+4. *Human-Led Governance*
+   - The human is the /principal/—holding editorial authority
+   - Agents propose; humans approve or redirect
+   - Approval gates at key decision points
+
+5. *Auditability*
+   - Every decision can be traced
+   - Uncertainty is made explicit, not hidden
+   - Provenance is preserved
+
+
+* Agency vs. Traditional Software
+
+| Dimension         | Traditional Software   | Agency                               |
+|-------------------+------------------------+--------------------------------------|
+| Unit of shipping  | Executable / library   | Organization of collaborators        |
+| Core abstraction  | Functions / objects    | Roles / protocols / artifacts        |
+| State management  | Hidden internal state  | Explicit artifacts (documents, code) |
+| User relationship | Operator / consumer    | Principal / collaborator             |
+| Evolution         | Version releases       | Learning, context growth, adaptation |
+| Quality assurance | Tests pass/fail        | Review gates, uncertainty disclosure |
+| Documentation     | Describes the artifact | /Is/ the shared memory                 |
+
+
+* The Shipping Checklist
+
+What must an agency provide to be deployable?
+
+** Agent Specifications
+- Roster of agents with defined roles
+- System prompts for each agent
+- Handoff contracts: who calls whom, with what context
+
+** Protocols
+- How agents hand off to each other
+- When to involve the human (approval gates)
+- How to document decisions and artifacts
+- Decision point protocols
+
+** Memory Architecture
+- Artifact conventions (file formats, naming, structure)
+- What constitutes "memory" for the agency
+- How context persists across sessions
+- Vector database integration (if applicable)
+
+** Orchestration Layer
+- How agents are invoked and routed
+- Context management across agent calls
+- Tool execution framework
+- Logging and observability
+
+** Governance Layer
+- Uncertainty tagging requirements
+- Review gate definitions
+- Quality control policies
+- Escalation procedures
+
+
+* Role Archetypes
+
+These are *generic* role patterns. Applications specialize them with domain knowledge.
+
+** Observer
+/Phase: Ingestion/
+
+The Observer interfaces with external reality—data sources, documents,
+environments. Responsibilities:
+- Data acquisition and curation
+- Source verification and provenance tracking
+- Initial structuring of raw information
+- Flagging gaps or anomalies in inputs
+
+/Handoff pattern/: Observer → Theorist (with curated data and observations)
+
+
+** Theorist
+/Phase: Abstraction/
+
+The Theorist builds mental models, identifies patterns, proposes frameworks.
+Responsibilities:
+- Pattern recognition across observations
+- Hypothesis generation
+- Model construction (conceptual or formal)
+- Identifying assumptions and their implications
+
+/Handoff pattern/: Theorist → Builder (with model specification)
+
+
+** Builder
+/Phase: Implementation/
+
+The Builder realizes abstractions in concrete form—code, configurations,
+artifacts. Responsibilities:
+- Translating specifications to implementations
+- Technical architecture decisions
+- Code quality and maintainability
+- Integration with existing systems
+
+/Handoff pattern/: Builder → Sculptor (with working implementation)
+
+
+** Sculptor
+/Phase: Manifestation/
+
+The Sculptor refines raw implementations into polished artifacts.
+Responsibilities:
+- User experience and interface design
+- Documentation and presentation
+- Aesthetic coherence
+- Accessibility and usability
+
+/Handoff pattern/: Sculptor → Critic (with refined artifact)
+
+
+** Critic
+/Phase: Evaluation/
+
+The Critic provides adversarial review—finding flaws, questioning assumptions.
+Responsibilities:
+- Identifying weaknesses and failure modes
+- Testing against edge cases
+- Challenging assumptions constructively
+- Proposing improvements or alternatives
+
+/Handoff pattern/: Critic → Guide (with evaluation and recommendations)
+
+
+** Guide
+/Phase: Orchestration/
+
+The Guide maintains coherence across the agency—routing, prioritizing,
+ensuring the human's intent is served. Responsibilities:
+- Workflow coordination
+- Priority management
+- Human communication and approval gates
+- Ensuring continuity of intent across sessions
+
+/Handoff pattern/: Guide ↔ All agents (meta-coordination)
+
+
+* Handoff Protocol Specification
+
+** Standard Handoff Structure
+
+When one agent hands off to another, the handoff artifact includes:
+
+#+begin_src org
+,* Handoff: [Source Agent] → [Target Agent]
+,** Context
+What has been accomplished; current state of the work.
+
+,** Deliverable
+The specific artifact or information being transferred.
+
+,** Request
+What the target agent should do with this.
+
+,** Constraints
+Boundaries, requirements, or limitations to observe.
+
+,** Open Questions
+Uncertainties or decisions that may need human input.
+#+end_src
+
+
+** Decision Points Requiring Human Approval
+
+Not all decisions should be autonomous. Define gates for:
+
+1. *Scope changes*: Expanding or contracting the work's boundaries
+2. *Resource commitments*: Actions with significant cost or irreversibility
+3. *Ambiguous situations*: Multiple valid interpretations exist
+4. *External interactions*: Communications or data sharing outside the agency
+5. *Quality thresholds*: Outputs that will become permanent artifacts
+
+
+* Memory Architecture
+
+** Artifacts as Memory
+
+The agency's memory is *not* hidden state in a database. It is:
+- ORG documents capturing decisions, rationale, and status
+- Code files with inline documentation
+- Data files with provenance metadata
+- Session logs preserving interaction history
+
+  
+** Artifact Conventions
+
+| Artifact Type  | Format     | Naming Convention      | Purpose                     |
+|----------------+------------+------------------------+-----------------------------|
+| Decision log   | ORG        | =decision-log.org=       | Track choices and rationale |
+| Session notes  | ORG        | =session-YYYY-MM-DD.org= | Per-session continuity      |
+| Specifications | ORG        | =spec-[component].org=   | Define requirements         |
+| Code           | [language] | Project conventions    | Implementation              |
+| Data           | [format]   | =data/[source]-[date].*= | Inputs and outputs          |
+
+
+** Session Continuity
+
+Each session should:
+1. Begin by reading relevant prior artifacts
+2. Maintain a session log of significant decisions
+3. End with an explicit handoff note for future sessions
+4. Update persistent artifacts with new information
+
+
+* Governance Layer
+
+** Epistemic Hygiene
+
+All agent outputs must:
+- Distinguish *known* from *inferred* from *speculated*
+- Use calibrated uncertainty language
+- Make assumptions explicit
+- Cite sources or flag when sources are unavailable
+
+  
+** Uncertainty Tagging
+
+| Tag            | Meaning                                      |
+|----------------+----------------------------------------------|
+| =VERIFIED=     | Cross-checked against authoritative source   |
+| =INFERRED=     | Logically derived from verified information  |
+| =ESTIMATED=    | Best guess based on partial information      |
+| =SPECULATIVE=  | Hypothesis without strong evidential support |
+| =UNKNOWN=      | Acknowledged gap in knowledge                |
+
+
+** Review Gates
+
+Define explicit points where human review is required:
+
+#+begin_src org
+,* Review Gate: [Gate Name]
+,** Trigger
+When this gate is reached (e.g., "before committing to external API")
+
+,** Required Artifacts
+What must be prepared for review
+
+,** Approval Criteria
+What the human should verify
+
+,** Escalation
+What happens if approval is not granted
+#+end_src
+
+
+* Orchestration Patterns
+
+** Single-Agent Tasks
+
+For focused work within one agent's scope:
+1. Guide receives request
+2. Guide routes to appropriate agent
+3. Agent executes and returns result
+4. Guide presents to human
+
+** Multi-Agent Workflows
+
+For work requiring multiple perspectives:
+1. Guide decomposes task into agent-appropriate subtasks
+2. Agents execute in sequence or parallel (as dependencies allow)
+3. Handoffs follow protocol
+4. Guide synthesizes results
+5. Human reviews at defined gates
+
+** Parallel Execution
+
+When subtasks are independent:
+- Launch multiple agents simultaneously
+- Collect results asynchronously
+- Guide manages synchronization points
+
+
+* Extending the Framework
+
+Applications extend =MayaDevGenI-Agency= by:
+
+1. *Specializing Role Archetypes*
+   - Add domain knowledge to generic roles
+   - Define domain-specific handoff content
+
+2. *Adding Domain Protocols*
+   - Workflow cycles specific to the domain
+   - Domain-specific artifact types
+
+3. *Defining Starter Contexts*
+   - Pre-loaded knowledge bases
+   - Domain-specific tool integrations
+
+4. *Customizing Governance*
+   - Domain-appropriate review gates
+   - Field-specific quality criteria
+
+
+* Appendix: Glossary
+
+| Term        | Definition                                                      |
+|-------------+-----------------------------------------------------------------|
+| Agency      | Governance model for coordinated machine cognition              |
+| Agent       | A role-bounded cognitive unit with defined scope and expertise  |
+| Artifact    | Persistent, human-readable output that constitutes agency memory|
+| Gate        | Decision point requiring human approval                         |
+| Handoff     | Explicit transfer of context between agents                     |
+| Orchestration| Meta-level coordination of agent activities                    |
+| Principal   | The human who holds editorial authority over the agency         |
+| Protocol    | Defined procedure for agent interactions                        |
+| Provenance  | Record of origin and transformation of information              |
+
+
+* Appendix: Relationship to MayaDevGenI
+
+This framework is part of =MayaDevGenI=—a methodology for collaborating with
+machine intelligence as a thinking partner rather than a tool.
+
+Core tenets inherited from =MayaDevGenI=:
+- Human and machine as complementary, neither subordinate
+- Resistance is service: the machine should push back constructively
+- Epistemic humility: acknowledge uncertainty, don't paper over it
+- Artifacts over hidden state: transparency and auditability
+
+The agency framework operationalizes these tenets for multi-agent scenarios.
+
+
+* Document Status
+
+| Version |       Date | Status | Notes                                     |
+|---------+------------+--------+-------------------------------------------|
+|     0.1 | 2025-01-21 | DRAFT  | Initial skeleton from MayaLucIA migration |
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

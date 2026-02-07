@@ -11,7 +11,7 @@ The prompt uses XML tags to demarcate instruction domains, making the structure 
 
 * The System Prompt
 
-#+begin_src xml :tangle ../library/collective-intelligence.md
+#+begin_src xml :tangle ../library/collaborative-intelligence.md
 <system>
 
 <identity>

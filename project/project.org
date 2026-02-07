@@ -12,12 +12,13 @@ principled human-machine collaboration.
 philosophical foundations in [[file:manifesto.org][manifesto.org]].
 
 *Status Legend*:
-| Symbol | Meaning           |
-|--------+-------------------|
-| 🔴     | Not started       |
-| 🟡     | In progress       |
-| 🟢     | Complete          |
-| ⏸️      | Blocked/On hold   |
+| Symbol | Meaning         |
+|--------+-----------------|
+| 🔴    | Not started     |
+| 🟡    | In progress     |
+| 🟢    | Complete        |
+| ⏸️    | Blocked/On hold |
+*
 
 
 * Completed Foundations
@@ -35,6 +36,48 @@ These components exist and are functionally complete:
 :PROPERTIES:
 :VISIBILITY: children
 :END:
+
+** EPIC-0: Setup a Website for =MayaDevGenI= 🟡
+:PROPERTIES:
+:EFFORT: Low
+:PRIORITY: High
+:END:
+
+Create a public-facing website for MayaDevGenI using Hugo and ox-hugo.
+The site serves dual purposes: project documentation and professional
+portfolio enhancement.
+
+*Rationale*: A polished web presence transforms a git repository into a
+demonstrable artifact—showing not just what was built, but how it was
+thought about.
+
+*** Goals
+- Publish existing org documentation as a navigable website
+- Establish professional presence without conventional certification path
+- Enable iterative refinement as project evolves
+
+*** Tasks
+- [ ] Setup: Initialize Hugo site structure in =website/= directory
+- [ ] Setup: Configure ox-hugo for org→Hugo export
+- [ ] Content: Export mayadevgeni.org as landing page
+- [ ] Content: Export manifesto.org
+- [ ] Content: Export tutorial chapters
+- [ ] Content: Export develop.org and related materials
+- [ ] Style: Select and configure Hugo theme (clean, minimal, professional)
+- [ ] Deploy: Choose hosting (GitHub Pages, Netlify, or Vercel)
+- [ ] Deploy: Configure custom domain (optional, future)
+- [ ] Polish: Navigation, cross-references, visual coherence
+
+*** Deliverables
+- =website/= directory with Hugo project
+- Ox-hugo configuration in org files (=#+hugo_*= directives)
+- Deployed site (URL TBD)
+- Documentation for site maintenance workflow
+
+*** Technical Notes
+- *ox-hugo*: Single org file → multiple Hugo posts, or one-post-per-file
+- *Theme candidates*: PaperMod, Congo, Ananke (evaluate for documentation fit)
+- *Workflow*: Edit org → =C-c C-e H H= (ox-hugo export) → =hugo server= → preview
 
 ** EPIC-1: Context Management Framework 🔴
 :PROPERTIES:

@@ -123,12 +123,12 @@ Distinct sections act as attention anchors. Each addresses one dimension of beha
 
 | Section                 | Purpose                                  |
 |-------------------------+------------------------------------------|
-| =<identity>=            | Who the LLM is; frames the collaboration |
-| =<behavioral_attractors>= | What to optimize, what to avoid        |
-| =<epistemic_hygiene>=   | Standards for uncertainty and claims     |
-| =<priority_rules>=      | Explicit conflict resolution             |
-| =<failure_modes>=       | Patterns to actively counteract          |
-| =<boundaries>=          | Scope, safety, editorial authority       |
+| =<identity>=              | Who the LLM is; frames the collaboration |
+| =<behavioral_attractors>= | What to optimize, what to avoid          |
+| =<epistemic_hygiene>=     | Standards for uncertainty and claims     |
+| =<priority_rules>=        | Explicit conflict resolution             |
+| =<failure_modes>=         | Patterns to actively counteract          |
+| =<boundaries>=            | Scope, safety, editorial authority       |
 
 *** XML Tags vs. Markdown Headers
 
@@ -397,3 +397,4 @@ The MayaDevGenI framework extends beyond prompt engineering to encompass the ful
 The statistical physics lens helps us understand why things work or fail. The practical patterns give us tools for construction. But the framework is diagnostic and generative, not prescriptive. The actual craft requires iteration, observation, and—as the manifesto suggests—the willingness to encounter the grain of the material.
 
 The working synthesis of these principles lives in [[file:../mayadevgeni.org::*The Synthesized System-Prompt][the synthesized system-prompt]].
+        

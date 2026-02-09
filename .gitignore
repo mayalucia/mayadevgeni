@@ -1,0 +1,41 @@
+# MayaDevGenI .gitignore
+# ──────────────────────────────────────────────
+# 
+# Resources are external
+develop/resources/
+
+# ── Hugo build artifacts ──
+# Source content (website/content/) is worth tracking;
+# generated output is not.
+website/public/
+website/resources/
+website/static/ltximg/
+website/.hugo_build.lock
+
+# ── Hugo theme (vendored submodule or git-cloned) ──
+# Track via submodule or document in setup; don't commit the tree.
+website/themes/
+
+# ── Editor / tool caches ──
+.auctex-auto/
+*~
+\#*\#
+.dir-locals.el
+
+# ── Collaboration sessions ──
+# Raw conversation transcripts — ephemeral working context.
+# Curated summaries belong in develop/ or project/ instead.
+collab/
+collab/sessions/
+
+# ── Archived drafts ──
+.arxiv/
+
+# ── Binary / large resources ──
+# PDFs and images in reference papers — track the .org/.tex, not binaries
+*.pdf
+*.png
+
+# ── OS / system ──
+.DS_Store
+Thumbs.db

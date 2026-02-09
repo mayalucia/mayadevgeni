@@ -1,0 +1,3 @@
+#+title: Learn about Agentic AI
+
+For =MayaDevGenI= we will learn from the community of AI researchers.

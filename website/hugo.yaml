@@ -1,0 +1,182 @@
+baseURL: https://mayadevgeni.github.io/
+languageCode: en-us
+title: MayaDevGenI
+theme: PaperMod
+
+# Build settings
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+enableEmoji: true
+
+# Minification
+minify:
+  disableXML: true
+  minifyOutput: true
+
+# Pagination (using new format)
+pagination:
+  pagerSize: 10
+
+# Taxonomies
+taxonomies:
+  tag: tags
+  category: categories
+
+# Menu configuration
+menu:
+  main:
+    - identifier: about
+      name: About
+      url: /about/
+      weight: 10
+    - identifier: manifesto
+      name: Manifesto
+      url: /manifesto/
+      weight: 20
+    - identifier: framework
+      name: Framework
+      url: /framework/
+      weight: 30
+    - identifier: tutorial
+      name: Tutorial
+      url: /tutorial/
+      weight: 40
+    - identifier: search
+      name: Search
+      url: /search/
+      weight: 50
+
+# PaperMod theme parameters
+params:
+  env: production
+  title: MayaDevGenI
+  description: "A Framework for Principled Human-Machine Collaboration"
+  keywords: [AI, LLM, Collaboration, System-Prompt, Emacs, Org-mode]
+  author: "A Human–Machine Collaboration"
+  
+  # Theme mode
+  defaultTheme: auto
+  disableThemeToggle: false
+  
+  # Show reading time
+  ShowReadingTime: true
+  ShowShareButtons: false
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: false
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+  disableSpecial1stPost: false
+  disableScrollToTop: false
+  comments: false
+  hidemeta: false
+  hideSummary: false
+  showtoc: true
+  tocopen: true
+  
+  # Assets
+  assets:
+    disableHLJS: true
+    disableFingerprinting: false
+    favicon: "/favicon.ico"
+    
+  # Home info mode
+  homeInfoParams:
+    Title: "MayaDevGenI"
+    Content: >
+      A Framework for Principled Human-Machine Collaboration.
+      
+      
+      What happens when we stop treating machine intelligence as a tool 
+      and start treating it as a **thinking partner**?
+      
+      
+      Not as oracle—it hallucinates. Not as servant—that wastes what it offers. 
+      Not as replacement—it lacks what you have. But as *collaborator*: a strange 
+      new kind of mind that traverses conceptual space differently than you do.
+      
+      
+      **MayaDevGenI** (Maya's Creative Developer's Generative AI) emerges from this question.
+
+  # Social icons
+  socialIcons:
+    - name: github
+      url: "https://github.com/mayadevgeni"
+
+  # Cover image settings
+  cover:
+    hidden: false
+    hiddenInList: false
+    hiddenInSingle: false
+    
+  # Edit post settings (for linking to source)
+  editPost:
+    URL: "https://github.com/mayadevgeni/mayadevgeni/tree/main/content"
+    Text: "Suggest Changes"
+    appendFilePath: true
+
+  # Search
+  fuseOpts:
+    isCaseSensitive: false
+    shouldSort: true
+    location: 0
+    distance: 1000
+    threshold: 0.4
+    minMatchCharLength: 0
+    keys: ["title", "permalink", "summary", "content"]
+
+# Outputs for search
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
+
+# Markup configuration
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
+    codeFences: true
+    guessSyntax: true
+    lineNos: false
+    style: monokai
+  tableOfContents:
+    startLevel: 2
+    endLevel: 4
+    ordered: false
+
+# Ignore deprecated warnings  
+ignoreErrors: ["error-deprecated"]
+
+# Privacy settings
+privacy:
+  vimeo:
+    disabled: false
+    simple: true
+  twitter:
+    disabled: false
+    enableDNT: true
+    simple: true
+  instagram:
+    disabled: false
+    simple: true
+  youtube:
+    disabled: false
+    privacyEnhanced: true
+
+# Related content
+related:
+  includeNewer: true
+  indices:
+    - name: tags
+      weight: 100
+    - name: categories  
+      weight: 80
+  threshold: 80
+  toLower: false

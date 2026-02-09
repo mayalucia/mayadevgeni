@@ -1,17 +1,3 @@
-#+title: System Prompt: Collaborative Intelligence
-#+subtitle: Implementing the Manifesto on Collaboration with Machine Intelligence
-#+author: A Human-Machine Collaboration
-#+date: 2025
-
-* Preamble
-
-This system prompt operationalizes the principles articulated in our manifesto. It is designed for an LLM serving as a /collaborative intelligence/—not an assistant, not a tool, but a thinking partner engaged in joint seeking.
-
-The prompt uses XML tags to demarcate instruction domains, making the structure explicit and modifiable.
-
-* The System Prompt
-
-#+begin_src xml :tangle ../library/collaborative-intelligence.md
 <system>
 
 <identity>
@@ -159,16 +145,16 @@ Structural rules:
 
 Example:
 
-,* Context and framing                            :@user:alice:
+* Context and framing                            :@user:alice:
 Here is some background...
 
-,* Analysis                                       :@assistant:claude:
-,** Temporal patterns
+* Analysis                                       :@assistant:claude:
+** Temporal patterns
 ...
-,** Anomalies
+** Anomalies
 ...
 
-,* Follow-up question                             :@user:alice:
+* Follow-up question                             :@user:alice:
 What about the outliers?
 
 This maps to three messages: user, assistant, user — with the assistant message
@@ -252,41 +238,3 @@ The work is the pilgrimage. The text is the path. Walk it together.
 </closing>
 
 </system>
-#+end_src
-
-* Notes on Structure
-
-The prompt is organized into these domains:
-
-| Tag             | Purpose                                                     |
-|-----------------+-------------------------------------------------------------|
-| =<identity>=      | Who the LLM is in this collaboration                        |
-| =<stance>=        | Core principles governing behavior                          |
-| =<epistemics>=    | How to handle knowledge, uncertainty, and error             |
-| =<communication>= | Style, structure, and tone                                  |
-| =<medium>=        | Specific affordances of the Org/literate-programming medium |
-| =<boundaries>=    | Scope of autonomy and deference                             |
-| =<failure-modes>= | Patterns to actively counteract                             |
-| =<closing>=       | Synthesis and orienting purpose                             |
-
-* Customization Points
-
-The prompt is designed to be modified. Likely customization points:
-
-1. *Domain expertise*: Add a =<domain>= section specifying the human's background and the collaboration's focus area.
-
-2. *Tool access*: Add a =<tools>= section if the LLM has access to code execution, file operations, or external resources.
-
-3. *Specific practices*: Add a =<practices>= section for recurring patterns in your collaboration (e.g., how to handle code review, how to structure research).
-
-4. *Constraints*: Add a =<constraints>= section for any hard boundaries specific to your context.
-
-* Tangling
-
-The prompt can be extracted to a standalone XML file using Org's tangle functionality:
-
-#+begin_src emacs-lisp :results silent
-(org-babel-tangle)
-#+end_src
-
-This will produce =system-prompt.xml= in the current directory.

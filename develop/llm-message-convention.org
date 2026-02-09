@@ -1,0 +1,505 @@
+#+title: LLM Message Convention for Org-Mode
+#+subtitle: A Hybrid Headline–Block Approach
+#+author: mu2tau & claude
+#+date: 2025
+#+property: header-args :tangle no
+
+* Overview
+
+This document specifies a convention for structuring LLM conversations in Org-mode files. The goals are:
+
+- *Persistence*: Conversations survive editing operations without corruption
+- *Parseability*: Clean mapping to the LLM API message format
+- *Readability*: Natural Org document structure for human navigation
+- *Extensibility*: Room for metadata (timestamps, tool calls, etc.)
+
+The convention emerged from practical frustration: gptel's property-based approach is fragile under normal Org editing operations. We need something more robust.
+
+
+* The Hybrid Approach
+
+We separate two concerns:
+
+| Concern              | Mechanism        | Purpose                          |
+|----------------------+------------------+----------------------------------|
+| Document structure   | Org headlines    | Topics, sections, navigation     |
+| Conversation turns   | Message blocks   | API message boundaries, content  |
+
+Headlines organize /topics/. Blocks delimit /turns/. They do not compete.
+
+
+* Message Block Syntax
+
+** Basic Form
+
+#+begin_example
+,#+begin_message :role ROLE :name NAME
+Content of the message...
+,#+end_message
+#+end_example
+
+Where:
+- =ROLE= is one of: =user=, =assistant=, =system=, =tool=
+- =NAME= identifies the speaker (e.g., =mu2tau=, =claude=, =gpt4=)
+- Additional keyword parameters as needed
+
+** Extended Parameters
+
+For tool messages and other metadata:
+
+#+begin_example
+,#+begin_message :role tool :name search_files :tool_call_id call_abc123
+Results from the tool...
+,#+end_message
+
+,#+begin_message :role assistant :name claude :timestamp 2025-01-15T10:30:00
+Response with timestamp...
+,#+end_message
+#+end_example
+
+** Content Constraints
+
+Inside message blocks:
+
+| Allowed                | Not Allowed           |
+|------------------------+-----------------------|
+| Prose paragraphs       | Org headlines (=*=)     |
+| Bullet lists (=+=, =-=)    | Nested message blocks |
+| Bold, italic, verbatim |                       |
+| Inline code (===, =~=)     |                       |
+| Links                  |                       |
+| Tables                 |                       |
+
+Code blocks should be placed /outside/ message blocks, as standalone elements in the document. This prevents parsing ambiguity and keeps code as referenceable artifacts.
+
+
+* Headline Structure
+
+** Role Tags
+
+Headlines may carry role tags to indicate the dominant speaker for that section:
+
+| Tag          | Meaning                         |
+|--------------+---------------------------------|
+| =:@user:=      | User-initiated section          |
+| =:@assistant:= | Assistant-initiated section     |
+| =:@system:=    | System context or configuration |
+
+These are organizational hints, not message delimiters. The actual messages are always in blocks.
+
+** Tag Configuration
+
+#+begin_src elisp
+(setq org-tag-alist
+      '((:startgrouptag)
+        ("@role" . ?r)
+        (:grouptags)
+        ("@user" . ?u)
+        ("@assistant" . ?a)
+        ("@system" . ?s)
+        (:endgrouptag)))
+#+end_src
+
+** Example Document Structure
+
+#+begin_example
+,* Project Discussion                                    :@user:
+
+,#+begin_message :role user :name mu2tau
+I want to discuss the architecture for the new module.
+,#+end_message
+
+,#+begin_message :role assistant :name claude
+Let me outline three possible approaches...
+,#+end_message
+
+Here is the code we discussed:
+
+,#+begin_src python
+def process(data):
+    return transform(data)
+,#+end_src
+
+,#+begin_message :role user :name mu2tau
+I prefer the second approach. Can you elaborate?
+,#+end_message
+
+,* Implementation Details                                :@assistant:
+
+,#+begin_message :role assistant :name claude
+Here's a detailed breakdown of approach two...
+,#+end_message
+#+end_example
+
+
+* Parsing Rules
+
+** Message Extraction
+
+1. Scan for =#+begin_message= / =#+end_message= blocks
+2. Parse the header line for =:role=, =:name=, and other keywords
+3. Extract block content as the message =content= field
+4. Preserve order for the message array
+
+
+** Content Outside Message Blocks
+
+Content outside message blocks /is/ sent to the API by default. Role assignment follows these rules:
+
+1. *Explicit blocks win*: Content inside =#+begin_message :role X= blocks takes that role
+2. *Headline tags provide default*: Bare content under a headline tagged =:@user:= or =:@assistant:= inherits that role
+3. *Implicit user*: Content with no role context (no enclosing block, no headline tag) is treated as =user=
+
+*Blocks are islands, not boundaries*: A message block overrides the role locally but does not affect surrounding content. After the block closes, the headline's default role resumes.
+
+#+begin_example
+,* Research notes                                    :@user:
+
+Some context I'm providing...          ← user (from headline tag)
+
+,#+begin_message :role assistant :name claude
+An earlier response preserved here.
+,#+end_message
+
+More user notes after the block...     ← user (reverts to headline tag)
+
+,#+begin_message :role user :name mu2tau
+A specific question.
+,#+end_message
+#+end_example
+
+*Excluding content from API*: Use a =:PROPERTIES:= drawer with =:SEND_TO_API: no= to exclude a headline's content:
+
+#+begin_example
+,* Scratch notes                                     :@user:
+:PROPERTIES:
+:SEND_TO_API: no
+:END:
+These notes are for the human only, not sent to the LLM.
+#+end_example
+
+By default, all content is sent. This makes the Org file the /source of truth/ for the conversation.
+
+** End-Anchoring Convention
+
+When a message contains multiple questions or requests, the assistant should:
+1. Focus primarily on the /final/ substantive question
+2. Treat earlier content as context
+3. Address earlier questions only if explicitly marked or clearly unresolved
+
+Override with explicit markers when needed:
+- "Please address:" followed by a list
+- Numbered questions (all are required)
+- =#+FOCUS:= keyword
+
+
+* Structure Templates and Skeletons
+
+Two approaches for efficient message block entry: Org structure templates (quick, minimal) and Emacs skeletons (more flexible, interactive).
+
+** Org Structure Templates
+
+For quick entry with =org-tempo= (type prefix + =TAB=) or =C-c C-,=:
+
+#+begin_src elisp
+;; Quick user message (type <mu TAB)
+(add-to-list 'org-structure-template-alist
+             '("mu" . "message :role user :name mu2tau"))
+
+;; Quick assistant message (type <ma TAB)
+(add-to-list 'org-structure-template-alist
+             '("ma" . "message :role assistant :name claude"))
+
+;; Quick system message (type <ms TAB)
+(add-to-list 'org-structure-template-alist
+             '("ms" . "message :role system :name system"))
+
+;; Generic message (type <msg TAB)
+(add-to-list 'org-structure-template-alist
+             '("msg" . "message :role  :name "))
+#+end_src
+
+** Emacs Skeletons
+
+For more control, use skeletons. These place the cursor inside the block after insertion.
+
+*** Interactive Skeleton (prompts for all parameters)
+
+#+begin_src elisp
+(define-skeleton skel-llm-message
+  "Insert an LLM message block with interactive prompts."
+  nil
+  "#+begin_message :role " (skeleton-read "Role (user/assistant/system/tool): ") 
+  " :name " (skeleton-read "Name: ")
+  '(setq v1 (skeleton-read "Additional params (empty for none): "))
+  (if (string-empty-p v1) "" (concat " " v1))
+  "\n"
+  _ - "\n"
+  "#+end_message\n")
+#+end_src
+
+*** Default Skeletons (no prompts, fixed values)
+
+#+begin_src elisp
+(define-skeleton skel-llm-message-user
+  "Insert an LLM message block with user/mu2tau defaults."
+  nil
+  "#+begin_message :role user :name mu2tau\n"
+  _ - "\n"
+  "#+end_message\n")
+
+(define-skeleton skel-llm-message-assistant
+  "Insert an LLM message block with assistant/claude defaults."
+  nil
+  "#+begin_message :role assistant :name claude\n"
+  _ - "\n"
+  "#+end_message\n")
+
+(define-skeleton skel-llm-message-system
+  "Insert an LLM message block with system defaults."
+  nil
+  "#+begin_message :role system :name system\n"
+  _ - "\n"
+  "#+end_message\n")
+#+end_src
+
+** Suggested Key Bindings
+
+#+begin_src elisp
+;; Under a common prefix (C-c m for "message")
+(global-set-key (kbd "C-c m m") 'skel-llm-message)           ; interactive
+(global-set-key (kbd "C-c m u") 'skel-llm-message-user)      ; quick user
+(global-set-key (kbd "C-c m a") 'skel-llm-message-assistant) ; quick assistant
+(global-set-key (kbd "C-c m s") 'skel-llm-message-system)    ; quick system
+#+end_src
+
+** Usage Summary
+
+| Method              | Trigger            | Use case                     |
+|---------------------+--------------------+------------------------------|
+| Structure template  | =<mu TAB=            | Quick, known role/name       |
+| Structure template  | =C-c C-, mu=         | Same, alternative trigger    |
+| Skeleton (default)  | =C-c m u=            | Quick, cursor positioned     |
+| Skeleton (interactive) | =C-c m m=         | Custom role/name/params      |
+
+
+* Rationale
+
+** Why Not Properties?
+
+gptel uses Org properties (=:GPTEL_BOUNDS:=, etc.) to track message boundaries. This is fragile:
+- Properties are invisible, easily deleted accidentally
+- Editing operations (cut/paste, refiling) can corrupt them
+- No visual indication of message structure
+
+** Why Not Heading-Only?
+
+A pure heading-based approach (each turn is a headline with role tags) has issues:
+- Forces document structure to mirror conversation structure
+- Nested content within a turn requires sub-headings, muddying the hierarchy
+- Easy to accidentally nest replies incorrectly
+
+** Why Hybrid?
+
+The hybrid approach:
+- Uses headlines for what they do well: structure, folding, navigation
+- Uses blocks for what they do well: explicit delimited regions
+- Keeps them from interfering with each other
+- Is robust to normal Org editing operations
+- Maps cleanly to the API message format
+
+
+* Implementation Notes
+
+** Elisp Parser Sketch
+
+#+begin_src elisp :tangle no
+(defun llm-conv--get-headline-role ()
+  "Get role from current headline's tags. Return 'user, 'assistant, 'system, or nil."
+  (let ((tags (org-get-tags)))
+    (cond ((member "@user" tags) 'user)
+          ((member "@assistant" tags) 'assistant)
+          ((member "@system" tags) 'system)
+          (t nil))))
+
+(defun llm-conv--get-headline-name ()
+  "Get name from headline tags (first non-role tag)."
+  (let ((tags (org-get-tags)))
+    (cl-find-if (lambda (tag)
+                  (not (member tag '("@user" "@assistant" "@system" "@tool"))))
+                tags)))
+
+(defun llm-conv--send-to-api-p ()
+  "Check if current headline should be sent to API."
+  (let ((prop (org-entry-get nil "SEND_TO_API")))
+    (not (string= prop "no"))))
+
+(defun llm-conv--parse-message-header (header)
+  "Parse ':key value' pairs from HEADER string."
+  (let (params (pos 0))
+    (while (string-match ":\\([a-z_]+\\)\\s-+\\([^:]+?\\)\\(?:\\s-+:\\|$\\)" 
+                         header pos)
+      (setq params (plist-put params 
+                              (intern (concat ":" (match-string 1 header)))
+                              (string-trim (match-string 2 header))))
+      (setq pos (match-end 0)))
+    params))
+
+(defun llm-conv--parse-region (beg end default-role default-name)
+  "Parse region from BEG to END, extracting messages.
+Content outside blocks uses DEFAULT-ROLE and DEFAULT-NAME.
+Returns list of (:role ROLE :name NAME :content CONTENT) plists."
+  (let (messages bare-content-start)
+    (save-excursion
+      (goto-char beg)
+      (setq bare-content-start (point))
+      
+      (while (< (point) end)
+        (cond
+         ;; Found a message block start
+         ((looking-at "^#\\+begin_message\\s-+\\(.*\\)$")
+          ;; Collect any bare content before this block
+          (let ((bare (string-trim 
+                       (buffer-substring-no-properties bare-content-start (point)))))
+            (when (and (not (string-empty-p bare)) default-role)
+              (push (list :role default-role
+                          :name default-name
+                          :content bare)
+                    messages)))
+          
+          ;; Parse the message block
+          (let* ((header (match-string 1))
+                 (params (llm-conv--parse-message-header header))
+                 (block-start (1+ (line-end-position)))
+                 (block-end (when (re-search-forward "^#\\+end_message" end t)
+                              (match-beginning 0)))
+                 (content (when block-end
+                            (string-trim 
+                             (buffer-substring-no-properties block-start block-end)))))
+            (when content
+              (push (list :role (intern (plist-get params :role))
+                          :name (plist-get params :name)
+                          :content content)
+                    messages))
+            ;; Resume bare content after block
+            (setq bare-content-start (1+ (line-end-position)))))
+         
+         ;; Skip to next line
+         (t (forward-line 1))))
+      
+      ;; Collect any trailing bare content
+      (let ((bare (string-trim 
+                   (buffer-substring-no-properties bare-content-start end))))
+        (when (and (not (string-empty-p bare)) default-role)
+          (push (list :role default-role
+                      :name default-name
+                      :content bare)
+                messages))))
+    
+    (nreverse messages)))
+
+(defun llm-conv-parse-buffer ()
+  "Parse entire buffer, respecting headlines and message blocks.
+Returns list of messages suitable for LLM API."
+  (let (all-messages)
+    (save-excursion
+      (goto-char (point-min))
+      (org-map-entries
+       (lambda ()
+         (when (llm-conv--send-to-api-p)
+           (let* ((role (or (llm-conv--get-headline-role) 'user))
+                  (name (llm-conv--get-headline-name))
+                  (beg (save-excursion (org-end-of-meta-data t) (point)))
+                  (end (save-excursion (org-end-of-subtree t t) (point)))
+                  (msgs (llm-conv--parse-region beg end role name)))
+             (setq all-messages (append all-messages msgs)))))))
+    ;; Merge consecutive messages from same role
+    (llm-conv--merge-consecutive all-messages)))
+
+(defun llm-conv--merge-consecutive (messages)
+  "Merge consecutive messages from the same role."
+  (let (result current)
+    (dolist (msg messages)
+      (if (and current 
+               (eq (plist-get current :role) (plist-get msg :role))
+               (equal (plist-get current :name) (plist-get msg :name)))
+          ;; Same role - merge content
+          (setq current (plist-put current :content
+                                   (concat (plist-get current :content)
+                                           "\n\n"
+                                           (plist-get msg :content))))
+        ;; Different role - push current, start new
+        (when current (push current result))
+        (setq current (copy-sequence msg))))
+    (when current (push current result))
+    (nreverse result)))
+
+(defun llm-conv-to-api-format (messages)
+  "Convert parsed messages to API format (list of alists)."
+  (mapcar (lambda (msg)
+            (let ((alist `((role . ,(symbol-name (plist-get msg :role)))
+                           (content . ,(plist-get msg :content)))))
+              (when-let ((name (plist-get msg :name)))
+                (push `(name . ,name) alist))
+              alist))
+          messages))
+#+end_src
+
+Key functions:
+- =llm-conv-parse-buffer= — entry point, walks headlines respecting =:SEND_TO_API:=
+- =llm-conv--parse-region= — handles a headline's content, treating blocks as islands
+- =llm-conv--merge-consecutive= — combines adjacent same-role messages
+- =llm-conv-to-api-format= — converts to API-ready alist format
+
+
+** Elisp Parser Sketch
+
+#+begin_src elisp :tangle no
+(defun parse-message-blocks ()
+  "Extract message blocks from current buffer."
+  (let (messages)
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward 
+              "^#\\+begin_message\\s-+\\(.*\\)$" nil t)
+        (let* ((header (match-string 1))
+               (params (parse-message-header header))
+               (start (point))
+               (end (when (re-search-forward 
+                           "^#\\+end_message" nil t)
+                      (match-beginning 0)))
+               (content (when end 
+                          (string-trim 
+                           (buffer-substring-no-properties start end)))))
+          (when content
+            (push (list :role (plist-get params :role)
+                        :name (plist-get params :name)
+                        :content content)
+                  messages)))))
+    (nreverse messages)))
+
+(defun parse-message-header (header)
+  "Parse ':key value' pairs from HEADER string."
+  (let (params)
+    (while (string-match ":\\([a-z_]+\\)\\s-+\\([^:]+?\\)\\(?:\\s-+:\\|$\\)" 
+                         header)
+      (setq params (plist-put params 
+                              (intern (concat ":" (match-string 1 header)))
+                              (string-trim (match-string 2 header))))
+      (setq header (substring header (match-end 2))))
+    params))
+#+end_src
+
+** Integration Points
+
+- *gptel*: Needs adapter to use this format instead of properties
+- *MayaDevGenZ*: Can adopt this as the canonical conversation format
+- *Export*: Standard Org export treats blocks as verbatim; custom export needed for formatted transcripts
+
+
+* Version History
+
+| Date       | Change                                    |
+|------------+-------------------------------------------|
+| 2025-01-15 | Initial draft from mu2tau/claude conversation |
+

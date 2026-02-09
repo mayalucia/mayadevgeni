@@ -1,0 +1,132 @@
+#+title: Git Commit Workflow
+#+author: MayaDevGenI
+#+date: 2025-02-09
+#+filetags: :workflow:git:scripts:
+
+* Purpose
+
+Git commits in this project are a /deliberate act/ — not something an AI agent
+should do autonomously in a loop of tool calls. The problem: when the agent
+calls =git status=, =git diff=, etc. iteratively, it fills the context window
+with redundant output while the actual commit logic stays shallow.
+
+*Solution*: Separate observation from action via two scripts.
+
+- =git-report.sh= — generates a complete repo snapshot in one invocation
+- =git-commit.sh= — executes a declarative commit plan
+
+The human stays in the loop at both boundaries.
+
+* Project Topology
+
+#+begin_example
+MayaLucIA          — personal computational environment (git repo)
+├── MayaPortal     — submodule: data/model portal (git repo)
+│
+MayaDevGenI        — dev methodology + AI collaboration (git repo)
+├── MayaDevGenZ    — submodule: Emacs harness (git repo)
+#+end_example
+
+Commit order matters: *inner repos first, then outer* — because outer repos
+capture submodule pointers.
+
+Canonical order:
+1. MayaDevGenZ (innermost)
+2. MayaDevGenI (captures MayaDevGenZ pointer)
+3. MayaPortal (innermost on the MayaLucIA side)
+4. MayaLucIA (captures MayaPortal pointer)
+
+* Phase 1: Generate the Report
+
+Run from anywhere:
+
+#+begin_src shell
+# Summary mode — just file lists, no diffs (ideal for commit planning)
+bash ~/Darshan/research/develop/agentic/mayadevgeni/scripts/git-report.sh --summary --all
+
+# Full mode — includes truncated diffs (for reviewing changes)
+bash ~/Darshan/research/develop/agentic/mayadevgeni/scripts/git-report.sh --all
+
+# Save to file for the AI to read
+bash ~/Darshan/research/develop/agentic/mayadevgeni/scripts/git-report.sh --summary --all \
+     --output /tmp/git-report.org
+
+# Single repo only
+bash ~/Darshan/research/develop/agentic/mayadevgeni/scripts/git-report.sh \
+     ~/Darshan/research/develop/agentic/mayalucia/modules/mayaportal
+#+end_src
+
+** Options
+
+| Option           | Effect                                        |
+|------------------+-----------------------------------------------|
+| =--all=          | Report all four project repos (in order)      |
+| =--summary=      | Skip diff details, just show stat summaries   |
+| =--diff-lines N= | Max diff lines per repo (default: 150)        |
+| =--output FILE=  | Write to file instead of stdout               |
+| /(positional)/   | Specific repo path(s) to report on            |
+
+** Output
+
+Org-mode formatted report including, per repo:
+- Branch name
+- Last 5 commits
+- Staged changes (stat)
+- Unstaged changes (stat + optional diff)
+- Untracked files (truncated at 50)
+- Submodule status
+
+* Phase 2: Create a Commit Plan
+
+After reading the report, draft a /plan file/ — a simple text format:
+
+#+begin_example
+# Commit plan — 2025-02-09
+# Describe the intent here
+
+--- REPO: /absolute/path/to/repo
+--- MSG: conventional commit message here
+--- ADD: path/to/file1
+--- ADD: path/to/file2
+--- END
+
+--- REPO: /absolute/path/to/another/repo
+--- MSG: another commit message
+--- ADD: .
+--- END
+#+end_example
+
+Rules:
+- One stanza per commit (=REPO= ... =END=)
+- Stanzas execute in order — put inner repos first
+- =--- ADD: .= stages everything (equivalent to =git add .=)
+- Lines starting with =#= are comments
+- Blank lines are ignored
+
+* Phase 3: Execute the Plan
+
+#+begin_src shell
+# Preview what would happen (always do this first)
+bash ~/Darshan/research/develop/agentic/mayadevgeni/scripts/git-commit.sh --dry-run plan.txt
+
+# Execute for real
+bash ~/Darshan/research/develop/agentic/mayadevgeni/scripts/git-commit.sh plan.txt
+#+end_src
+
+* Typical Session Flow
+
+1. Human (or agent) says: "let's commit our work"
+2. Human runs: =git-report.sh --summary --all= (or =--output /tmp/report.org=)
+3. Agent reads the report (pasted or via file)
+4. Agent drafts a commit plan file — grouping changes by logical concern
+5. Human reviews the plan
+6. Human runs: =git-commit.sh --dry-run plan.txt= to verify
+7. Human runs: =git-commit.sh plan.txt= to execute
+
+The agent never calls =git= directly. No loops. No redundant tool invocations.
+
+* Note on .gitignore
+
+The MayaDevGenI repo currently shows ~1382 untracked files, mostly =website/public/=
+build artifacts. This needs a =.gitignore= update (separate concern from this
+workflow, but worth noting).

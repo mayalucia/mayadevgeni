@@ -19,6 +19,7 @@ The approach is grounded in a statistical-physics perspective: system-prompts as
 | [[file:05-failures.org][05-failures]]  | When Prompts Fail: A Diagnostic Guide                 | Diagnosis: six failure modes and their remedies                          |
 | [[file:06-iterate.org][06-iterate]]   | The Practice: Iterative Refinement                    | Process: the experimental loop of test, observe, revise                  |
 | [[file:07-scaling.org][07-scaling]]   | Scaling Up: Complex System-Prompts                    | Advanced: architecture and tradeoffs for sophisticated prompts           |
+| [[file:08-skills.org][08-skills]]    | Skills: Portable Knowledge for Agents                 | Comparative: how gptel-agent and Claude Code implement on-demand skills  |
 
 * Practical Resources
 
@@ -36,7 +37,7 @@ If you want to start writing prompts immediately:
 3. [[file:05-failures.org][05-failures]] — know the pitfalls
 
 ** The Complete Path
-For a thorough understanding, read sequentially from [[file:01-why.org][01-why]] through [[file:07-scaling.org][07-scaling]]. Each file builds on the previous, and navigation links guide you through.
+For a thorough understanding, read sequentially from [[file:01-why.org][01-why]] through [[file:08-skills.org][08-skills]]. Each file builds on the previous, and navigation links guide you through.
 
 ** The Practitioner's Path
 If you're ready to build a complex prompt for a real collaboration:

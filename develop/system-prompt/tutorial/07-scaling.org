@@ -255,5 +255,7 @@ The decision to scale up should be empirical. When simple prompts fail in ways t
 The MayaDevGenI prompt demonstrates one architecture for a complex collaboration. It's not the only way, and it's not optimal for every purpose. But it shows what's possible when you treat the system-prompt not as a sentence but as a system.
 
 #+begin_quote
+/Next: [[file:08-skills.org][Skills: Portable Knowledge for Agents]]/
+
 /Return to: [[file:01-why.org][Why System-Prompts Matter]]/
 #+end_quote

@@ -434,6 +434,7 @@ The approach is grounded in a statistical-physics perspective: system-prompts as
 | [[/tutorial/05-failures/][05]]      | When Prompts Fail: A Diagnostic Guide                 | Diagnosis: six failure modes and their remedies                          |
 | [[/tutorial/06-iterate/][06]]      | The Practice: Iterative Refinement                    | Process: the experimental loop of test, observe, revise                  |
 | [[/tutorial/07-scaling/][07]]      | Scaling Up: Complex System-Prompts                    | Advanced: architecture and tradeoffs for sophisticated prompts           |
+| [[/tutorial/08-skills/][08]]      | Skills: Portable Knowledge for Agents                 | Comparative: how gptel-agent and Claude Code implement on-demand skills  |
 
 ** Reading Paths
 
@@ -444,7 +445,7 @@ If you want to start writing prompts immediately:
 3. [[/tutorial/05-failures/][05-failures]] — know the pitfalls
 
 *** The Complete Path
-For a thorough understanding, read sequentially from [[/tutorial/01-why/][01-why]] through [[/tutorial/07-scaling/][07-scaling]]. Each chapter builds on the previous.
+For a thorough understanding, read sequentially from [[/tutorial/01-why/][01-why]] through [[/tutorial/08-skills/][08-skills]]. Each chapter builds on the previous.
 
 *** The Practitioner's Path
 If you're ready to build a complex prompt for a real collaboration:
@@ -508,6 +509,14 @@ If you're ready to build a complex prompt for a real collaboration:
 :END:
 
 #+include: "../develop/system-prompt/tutorial/07-scaling.org" :lines "3-"
+
+* Tutorial Chapter 8: Skills                                          :tutorial:
+:PROPERTIES:
+:EXPORT_FILE_NAME: 08-skills
+:EXPORT_HUGO_SECTION: tutorial
+:END:
+
+#+include: "../develop/system-prompt/tutorial/08-skills.org" :lines "3-"
 
 
 * Local Variables                                                   :noexport:

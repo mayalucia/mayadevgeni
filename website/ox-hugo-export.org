@@ -40,6 +40,8 @@ MayaDevGenI develops a framework for human-machine collaboration grounded in:
 
 - *Craft*: A [[/tutorial/][tutorial]] on system-prompt engineering, treating it as experimental science: draft, test, observe, diagnose, refine.
 
+- *Practice*: [[/framework/co-ownership/][Co-ownership briefings]] for designing artifacts that human and machine can both reconstruct from, and a [[/framework/tool-use/][tool-use tutorial]] on teaching LLMs to act in the world.
+
 - *Implementation*: Working system-prompts that operationalize these principles for real collaboration.
 
 *** Who This Is For
@@ -179,6 +181,8 @@ This framework develops answers through multiple components:
 
 - *[[/framework/system-prompt-engineering/][System-Prompt Engineering]]*: Shaping LLM behavior through carefully crafted initial constraints
 - *[[/framework/tool-integration/][Tool Integration]]*: Enabling the LLM to act in the world—reading, searching, modifying
+- *[[/framework/tool-use/][Tool Use Tutorial]]*: Teaching an LLM to act—decision trees, tool catalogs, failure modes, and implementation patterns
+- *[[/framework/co-ownership/][Co-Ownership Briefings]]*: Designing artifacts and project briefings for human–machine co-ownership
 - *Context Management*: Governing what information flows into and out of the conversation
 - *Project Memory*: Maintaining continuity across sessions and preserving learnings
 - *Agent Architecture*: Structuring single and multi-agent systems
@@ -408,6 +412,22 @@ Rationale: specialized tools provide structured output, better error handling, a
 | Context Explosion    | No cost awareness                   | Delegation rules for large result sets  |
 | Edit Failures        | Preconditions not enforced          | "MUST Read before Edit"                 |
 
+
+* Tool Use: Teaching an LLM to Act                                   :framework:
+:PROPERTIES:
+:EXPORT_FILE_NAME: tool-use
+:EXPORT_HUGO_SECTION: framework
+:END:
+
+#+include: "../develop/tool-use/tool-use-tutorial.org" :lines "5-"
+
+* Co-Ownership Briefings                                              :framework:
+:PROPERTIES:
+:EXPORT_FILE_NAME: co-ownership
+:EXPORT_HUGO_SECTION: framework
+:END:
+
+#+include: "../develop/co-ownership-briefing.org" :lines "7-"
 
 * Tutorial Index                                                      :tutorial:
 :PROPERTIES:

@@ -1,7 +1,7 @@
 +++
 title = "About"
 author = ["MayaDevGenI Collaboration"]
-lastmod = 2026-02-05T16:59:18+01:00
+lastmod = 2026-02-17T20:00:00+01:00
 draft = false
 ShowReadingTime = false
 ShowBreadCrumbs = false
@@ -23,6 +23,8 @@ MayaDevGenI develops a framework for human-machine collaboration grounded in:
 -   **Theory**: A [technical framework](/framework/) using statistical physics to understand how system-prompts shape language model behavior—not as metaphor, but as diagnostic tool.
 
 -   **Craft**: A [tutorial](/tutorial/) on system-prompt engineering, treating it as experimental science: draft, test, observe, diagnose, refine.
+
+-   **Practice**: [Co-ownership briefings](/framework/co-ownership/) for designing artifacts that human and machine can both reconstruct from, and a [tool-use tutorial](/framework/tool-use/) on teaching LLMs to act in the world.
 
 -   **Implementation**: Working system-prompts that operationalize these principles for real collaboration.
 

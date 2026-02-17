@@ -1,7 +1,7 @@
 +++
 title = "Framework"
 author = ["MayaDevGenI Collaboration"]
-lastmod = 2026-02-05T16:59:18+01:00
+lastmod = 2026-02-17T20:00:00+01:00
 tags = ["framework"]
 draft = false
 +++
@@ -17,6 +17,8 @@ This framework develops answers through multiple components:
 
 -   **[System-Prompt Engineering](/framework/system-prompt-engineering/)**: Shaping LLM behavior through carefully crafted initial constraints
 -   **[Tool Integration](/framework/tool-integration/)**: Enabling the LLM to act in the world—reading, searching, modifying
+-   **[Tool Use Tutorial](/framework/tool-use/)**: Teaching an LLM to act—decision trees, tool catalogs, failure modes, and implementation patterns
+-   **[Co-Ownership Briefings](/framework/co-ownership/)**: Designing artifacts and project briefings for human–machine co-ownership
 -   **Context Management**: Governing what information flows into and out of the conversation
 -   **Project Memory**: Maintaining continuity across sessions and preserving learnings
 -   **Agent Architecture**: Structuring single and multi-agent systems

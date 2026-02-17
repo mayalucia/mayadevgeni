@@ -41,6 +41,28 @@
    
    - Next: Implement parser in =mayadevgenz=, test with real conversations.
 
+** <2025-07-28> Session: Co-Ownership Briefing Report
+   - Collaborator: mu2tau + claude
+   - Context: Developing MayaPortal lesson 00-prelude; question arose of what it means
+     for a machine to co-own a codebase with a human collaborator.
+   - Outcome: Designed co-ownership principle and composable briefing templates.
+
+   *Key insights:*
+   - Co-ownership is a property of the /artifact/, not the machine
+   - Dual-channel principle: prose for human reconstruction, code for machine reconstruction
+   - Haskell as a /reasoning language/ (specification, not implementation)
+   - Types as propositions (Curry-Howard applied to scientific pipelines)
+   - Bootstrap documents (=CLAUDE.md=) as machine-readable session orientation
+
+   *Artifacts created:*
+   - =MayaLucIA:develop/co-ownership.org= — foundational principle document
+   - =MayaDevGenI:develop/co-ownership-briefing.org= — pedagogical report with templates
+   - Updated =MayaLucIA/CLAUDE.md= and =MayaPortal/CLAUDE.md= with co-ownership sections
+   - Tangleable template blocks for project-level and module-level briefings
+
+   *Cross-project:* Principle encoded in MayaLucIA (where it applies);
+   report and templates in MayaDevGenI (where methodology lives).
+
 ** <2026-02-08> Session: Devlog scaffolding
    - Created devlog structure for MayaDevGenI.
    - Next: Populate open threads from existing project documents.

@@ -382,6 +382,8 @@ Each failure mode reveals something about the underlying mechanics.
 - The =CLAUDE.md= / =AGENTS.md= pattern
 - Separating generic agent behavior from project-specific conventions
 - Making conventions discoverable by the agent
+- Co-ownership briefings: project-level and module-level machine orientation
+  (see [[file:co-ownership-briefing.org][co-ownership briefing report]] for principles and templates)
 
 ** Workflow Integration
 
@@ -398,3 +400,5 @@ The statistical physics lens helps us understand why things work or fail. The pr
 
 The working synthesis of these principles lives in [[file:../mayadevgeni.org::*The Synthesized System-Prompt][the synthesized system-prompt]].
         
+
+

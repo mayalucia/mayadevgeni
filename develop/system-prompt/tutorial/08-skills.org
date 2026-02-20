@@ -255,6 +255,7 @@ The power of skills is their simplicity: a directory, a markdown file, a name, a
 
 #+begin_quote
 /Previous: [[file:07-scaling.org][Scaling Up: Complex System-Prompts]]/
+/Next: [[file:09-emacs-llm.org][The Workspace: Where System-Prompts Come Alive]]/
 
 /Return to: [[file:01-why.org][Why System-Prompts Matter]]/
 #+end_quote

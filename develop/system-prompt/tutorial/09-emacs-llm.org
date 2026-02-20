@@ -1,0 +1,137 @@
+#+title: The Workspace: Where System-Prompts Come Alive
+
+The previous chapters developed a craft: how to write system-prompts that shape LLM behavior with precision. But craft requires a medium. A sculptor needs clay, not a description of clay. This chapter concerns the environment where system-prompts are authored, tested, deployed, and refined---the workspace in which the collaboration actually unfolds.
+
+The thesis is specific: /Emacs/, a programmable text environment, has become the most capable platform for operationalizing the system-prompt craft developed in this tutorial. Not because Emacs is trendy (it is nearly fifty years old), but because its architecture---transparent, extensible, text-native---aligns with what LLM collaboration demands. The medium shapes the practice.
+
+* The Argument for a Shared Workspace
+
+Most people interact with LLMs through a chat interface: a text field on one side, responses on the other, a clipboard mediating between the chat and wherever the real work happens. This architecture imposes a structural bottleneck. The model sees only what you paste. It cannot observe your project, read your open files, or propose changes you review in place. Context must be manually curated at every exchange.
+
+A /shared workspace/ removes this bottleneck. The human and the AI operate within the same environment---the same files, buffers, and project structure. The model reads what you are editing. It proposes changes you review in a diff viewer. It executes code in the same runtime. The conversation and the work are not two separate activities mediated by copy-paste; they are one activity in one place.
+
+Emacs enables this because it is a /Lisp machine/. Every buffer, every action, every piece of state is a programmable object. When an LLM agent runs inside Emacs, it inherits this programmability: it can read buffers, navigate symbols, execute code, and propose edits through well-defined interfaces. The editor is not a container for the AI; it is a shared substrate.
+
+* Org-Mode as Joint-Thought Medium
+
+The substrate of the shared workspace is Org-mode---Emacs's plain-text format for structured documents. We have encountered org-mode indirectly throughout this tutorial: the system-prompts, agent definitions, and skill files that embody the craft of the previous chapters. Now we examine org-mode directly as the medium in which LLM collaboration /happens/.
+
+Three properties make org-mode uniquely suited:
+
+** Executable Code Blocks
+
+Org-mode supports /literate programming/: code blocks in any language, embedded in prose, executable in place. Press =C-c C-c= and the result appears below the block. Python, Julia, shell, Emacs Lisp---all interleaved with explanatory text.
+
+This matters for system-prompt work because testing a prompt is an empirical act. You write the prompt, send it, observe the output, and revise. When the prompt, the test, and the analysis live in the same document, the iteration cycle tightens.
+
+** Structured Message Blocks
+
+With =ob-gptel= (an org-babel backend for gptel), org files become LLM conversation transcripts:
+
+#+begin_example
+,#+begin_message :role user :name mu2tau
+Given the attractor structure of my system-prompt,
+where are the failure modes most likely to emerge?
+,#+end_message
+
+,#+begin_message :role assistant :name claude
+The priority ordering between your identity section
+and the epistemic constraints creates a potential...
+,#+end_message
+#+end_example
+
+Structure templates accelerate the workflow. Type =<mu TAB= for a user message block, =<ma TAB= for an assistant block, =<ms TAB= for a system message. The conversation accumulates structure: your annotations, code experiments, and the LLM's responses coexist in a single, navigable document.
+
+This is not a chat log. It is a /joint document/---the kind of artifact where system-prompt refinement, described in [[file:06-iterate.org][Chapter 6]], becomes a sustained practice rather than a transient exchange.
+
+** Literate Tangling
+
+Code blocks can be /tangled/---extracted into standalone source files. A system-prompt authored as an org document can be tangled into the =.md= files that gptel-agent or Claude Code expect. The prose explains the design rationale; the code blocks contain the operational prompt. They live together, are version-controlled together, and are exported separately.
+
+* gptel: The Universal LLM Gateway
+
+The practical machinery begins with [[https://github.com/karthink/gptel][gptel]]---a package that connects Emacs to any LLM provider through a uniform interface. One registers providers (Anthropic, Google, OpenAI, DeepSeek, local Ollama models, aggregators like OpenRouter) and switching between them is a single keybinding. The API key management follows a consistent pattern: keys live in =~/.authinfo.gpg=, a GPG-encrypted credential store, and are retrieved at runtime by lambda functions---never hardcoded.
+
+#+begin_src elisp
+(gptel-make-anthropic "Claude"
+  :stream t
+  :key #'(lambda ()
+           (auth-source-pick-first-password
+            :host "api.anthropic.com" :user "apikey"))
+  :models '(claude-opus-4-6
+            claude-sonnet-4-5-20250929))
+#+end_src
+
+The uniformity is the point. Whether you are testing a system-prompt against Claude Opus, comparing its behavior on Gemini, or running a cost-effective iteration with DeepSeek, the interface is identical. The /model/ varies; the /workflow/ does not. This is essential for the iterative refinement process of [[file:06-iterate.org][Chapter 6]]: you need to test the same prompt against different models without changing your process.
+
+* gptel-agent: System-Prompts Made Operational
+
+Here the tutorial comes full circle. Everything you learned about crafting system-prompts---the priority ordering of [[file:04-craft.org][Chapter 4]], the failure diagnostics of [[file:05-failures.org][Chapter 5]], the scaling architecture of [[file:07-scaling.org][Chapter 7]], the skill system of [[file:08-skills.org][Chapter 8]]---converges in [[https://github.com/karthink/gptel-agent][gptel-agent]].
+
+gptel-agent lets you save a system-prompt as a /reusable agent definition/: a markdown file with YAML frontmatter specifying the model, tools, and behavior, followed by the system-prompt body.
+
+#+begin_example
+---
+name: Statistical Physicist
+description: Collaborator fluent in stat-mech and stochastic processes
+model: claude-opus-4-6
+tools:
+  - python
+  - shell
+---
+
+You are a theoretical statistical physicist with deep expertise
+in interacting particle systems, Markov processes, and ...
+#+end_example
+
+Register an agents directory, and every file becomes a loadable persona:
+
+#+begin_src elisp
+(use-package! gptel-agent
+  :after gptel
+  :config
+  (add-to-list 'gptel-agent-dirs
+               (expand-file-name "~/agents"))
+  (gptel-agent-update))
+#+end_src
+
+The agents are plain files. They live in git. They are portable, diffable, shareable. When you refine a system-prompt through the iterative process---test, observe, revise---you are editing a file that /is/ the deployed agent. There is no gap between the craft and its application.
+
+This connects directly to the skill system described in [[file:08-skills.org][Chapter 8]]. An agent definition sets the baseline persona; skills expand its competence on demand. The agent /is/ the system-prompt; the skills are its training manuals. Together, they form a complete specification of a shaped intelligence---authored in plain text, version-controlled, and activated within the same Emacs environment where all other work happens.
+
+* Claude Code and MCP: The Agent in Your Editor
+
+The deepest form of the shared workspace is [[https://github.com/manzaltu/claude-code-ide.el][claude-code-ide]], which embeds Claude Code CLI in Emacs with /Model Context Protocol/ (MCP) tools. MCP is what transforms an LLM from a conversational partner into a co-editor.
+
+With MCP enabled, Claude can:
+- Read the buffer you are currently editing
+- Navigate your project's file structure
+- Find symbol definitions and references via the language server
+- Inspect the syntax tree
+- Propose edits that appear in Emacs's diff viewer
+
+#+begin_src elisp
+(use-package! claude-code-ide
+  :bind ("C-c C-'" . claude-code-ide-menu)
+  :config
+  (claude-code-ide-emacs-tools-setup)  ; Enable MCP tools
+  (setq claude-code-ide-window-side 'right
+        claude-code-ide-window-width 100))
+#+end_src
+
+The practical experience: you have a source file open on the left, Claude Code on the right. You describe a change in natural language. Claude reads your file through MCP, understands the structure, and proposes a diff. You review each hunk in =ediff=, accept or reject, and continue. The system-prompt governing Claude Code's behavior---the very kind of prompt this tutorial teaches you to write---shapes every interaction.
+
+A complementary approach is [[https://github.com/xenodium/agent-shell][agent-shell]], which runs AI agents (Claude Code, Gemini CLI, OpenAI Codex) in native Emacs buffers via the /Agent Client Protocol/. Where claude-code-ide provides deep MCP integration, agent-shell provides breadth: multiple agents in parallel, each in its own buffer, with full Emacs text manipulation on their output.
+
+* The Craft and the Medium
+
+This chapter has described a workspace, not a philosophy. But the workspace embodies a philosophy: that the collaboration between human and machine is best served by a /shared, transparent, programmable medium/. Org-mode provides the structure. gptel provides the connection. gptel-agent operationalizes the system-prompt craft. Claude Code with MCP makes the editor itself a shared space.
+
+The previous chapters taught you to shape what the LLM thinks. This chapter showed you where that thinking happens. The two are not separable: the quality of the system-prompt depends on the tightness of the iteration loop, and the iteration loop depends on the workspace.
+
+Plain text, version-controlled, executable, owned by you. That is the medium. The collaboration is what you make of it.
+
+#+begin_quote
+/Previous: [[file:08-skills.org][Skills: Portable Knowledge for Agents]]/
+/Back to: [[file:index.org][Tutorial Index]]/
+#+end_quote

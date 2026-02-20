@@ -455,6 +455,7 @@ The approach is grounded in a statistical-physics perspective: system-prompts as
 | [[/tutorial/06-iterate/][06]]      | The Practice: Iterative Refinement                    | Process: the experimental loop of test, observe, revise                  |
 | [[/tutorial/07-scaling/][07]]      | Scaling Up: Complex System-Prompts                    | Advanced: architecture and tradeoffs for sophisticated prompts           |
 | [[/tutorial/08-skills/][08]]      | Skills: Portable Knowledge for Agents                 | Comparative: how gptel-agent and Claude Code implement on-demand skills  |
+| [[/tutorial/09-emacs-llm/][09]]      | The Workspace: Where System-Prompts Come Alive        | Tooling: Emacs as a shared workspace for LLM collaboration              |
 
 ** Reading Paths
 
@@ -465,13 +466,18 @@ If you want to start writing prompts immediately:
 3. [[/tutorial/05-failures/][05-failures]] — know the pitfalls
 
 *** The Complete Path
-For a thorough understanding, read sequentially from [[/tutorial/01-why/][01-why]] through [[/tutorial/08-skills/][08-skills]]. Each chapter builds on the previous.
+For a thorough understanding, read sequentially from [[/tutorial/01-why/][01-why]] through [[/tutorial/09-emacs-llm/][09-emacs-llm]]. Each chapter builds on the previous.
 
 *** The Practitioner's Path
 If you're ready to build a complex prompt for a real collaboration:
 1. Skim [[/tutorial/07-scaling/][07-scaling]] to understand the architecture
 2. Study the [[/framework/system-prompt-engineering/][System-Prompt Engineering]] framework
 3. Test and refine using [[/tutorial/06-iterate/][06-iterate]] as your guide
+
+*** The Tooling Path
+If you want to set up the workspace where system-prompt craft happens:
+1. [[/tutorial/08-skills/][08-skills]] — understand how prompts become deployable skills
+2. [[/tutorial/09-emacs-llm/][09-emacs-llm]] — build the Emacs workspace where it all converges
 
 
 * Tutorial Chapter 1: Why System-Prompts Matter                       :tutorial:
@@ -537,6 +543,14 @@ If you're ready to build a complex prompt for a real collaboration:
 :END:
 
 #+include: "../develop/system-prompt/tutorial/08-skills.org" :lines "3-"
+
+* Tutorial Chapter 9: The Workspace                                   :tutorial:
+:PROPERTIES:
+:EXPORT_FILE_NAME: 09-emacs-llm
+:EXPORT_HUGO_SECTION: tutorial
+:END:
+
+#+include: "../develop/system-prompt/tutorial/09-emacs-llm.org" :lines "3-"
 
 
 * Local Variables                                                   :noexport:

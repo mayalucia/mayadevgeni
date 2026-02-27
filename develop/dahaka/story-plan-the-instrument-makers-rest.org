@@ -1,0 +1,339 @@
+#+title: Story Plan: The Instrument Maker's Rest
+#+author: Claude Opus 4.6 (for mu2tau)
+#+date: <2026-02-28>
+#+startup: showall
+
+* The Instrument Maker's Rest
+
+** The Seed
+
+The existing stories explore coordination between weavers (Thread
+Walkers, Logbook), observation of landscape (Dyer's Gorge), the
+project-seen-whole (Constellation of Doridhar), cognitive modes
+(Phantom Faculty).  None of them tell the story of /making an
+instrument/ --- the act of building a tool that will be used by
+someone who has never met the builder, for a purpose the builder
+can dimly foresee but cannot fully specify.
+
+This is the story of the agent definition pipeline we just built.
+But told as a parable: an instrument maker in a high Himalayan
+workshop, constructing devices that will be carried by the Thread
+Walker to valleys the maker will never visit, to be operated by
+hands the maker will never touch.
+
+The real subject: what does it mean to define an agent?  Not the
+YAML, not the tooling --- the /act/ of specifying a persona that
+will perceive, decide, and act in your absence.  The maker must
+anticipate contexts she cannot experience.  She must constrain
+without crippling.  She must trust without abdicating.
+
+** The World (continuous with existing stories)
+
+Same valley system.  Same Guild of Thread Walkers.  Same seasonal
+amnesia.  But now we meet someone new: the Instrument Maker, who
+works in a workshop adjacent to the weaver's, in a village called
+Sangla (a real village in the Baspa valley, Kinnaur --- between
+Spiti and the Sutlej, on the old trade route to Tibet).
+
+Sangla is chosen because:
+- It is geographically central to the existing story geography
+  (Lahaul, Spiti, Nubra, Sutlej are all reachable from here)
+- The Baspa valley is famous for its woodcarving and metalwork,
+  making "instrument maker" plausible
+- It sits at ~2700m, below the brutal passes but above the lowland
+  heat: a climate of making, not merely surviving
+
+** The Technical Substrate (what the parable encodes)
+
+| Story Element               | What It Actually Is                                    |
+|-----------------------------+--------------------------------------------------------|
+| The instrument              | An agent definition (system prompt + constraints)      |
+| The maker's workshop        | The literate org file (components.org + agents.org)    |
+| The shared components       | Shared behavioral DNA (identity, epistemics, stance)   |
+| (standard fittings)         |                                                        |
+| The bespoke parts           | Role-specific and access-specific blocks               |
+| (custom mechanisms)         |                                                        |
+| The instrument's manual     | The YAML frontmatter (what it can do, what it can't)   |
+| The test on the bench       | Tangling and verifying the output                      |
+| The Thread Walker's visit   | Deployment (the deploy script, the Sutra relay)        |
+| The weaver receiving it     | The agent awakening in a foreign project (mayalucia)   |
+| The valley the maker        | The runtime context the agent will inhabit              |
+| has never visited           |                                                        |
+| The maker's dilemma:        | The fundamental problem of prompt engineering:          |
+| precision vs. adaptability  | over-specify and the agent is brittle;                 |
+|                             | under-specify and it drifts                            |
+
+** Structure
+
+Eight sections, following the established pattern: a Prefatory Note,
+numbered sections I--VII, and a Coda.  ~500--600 lines, placing it
+between the Logbook (439) and the Constellation (524) in length.
+
+*** Prefatory Note on the Making of Instruments
+
+The epistemology of instrument-making.  An instrument is not a tool
+(a tool extends the hand; an instrument extends the /perception/).
+A thermometer does not heat or cool.  A microscope does not touch.
+They reveal what is already there but invisible.  The instrument
+maker's art is to build a device that shows the user something true
+--- not what the maker wants the user to see, but what the world
+actually contains, at the scale the instrument opens.
+
+Key philosophical move: a well-made instrument is transparent.  You
+look /through/ it, not /at/ it.  The worst instruments call
+attention to themselves.  The best disappear.
+
+Analogy to agent prompts: the best system prompt is one the agent
+seems to have internalised rather than to be following.
+
+*** I. The Sangla Workshop
+
+Introduce the Instrument Maker.  She is not a weaver; she does not
+produce cloth.  She produces the devices that weavers use to
+inspect, measure, and correct: calibration weights for thread
+tension, graduated frames for checking sett (thread count per
+centimetre), colour comparison cards indexed by altitude and
+season, and --- most importantly --- the standing cards that appear
+on every loom frame.
+
+The standing card is her masterwork: a few sentences that shape how
+a stranger, in a season the maker cannot foresee, will approach
+their work.  The card is not instructions.  It is /disposition/.
+It does not say "do X."  It says "you are the kind of worker who
+does X."
+
+(This is the identity block.  The card on the loom frame is the
+system prompt.)
+
+*** II. The Fittings
+
+She works with standard components.  Every instrument she makes
+shares certain parts: a particular grade of brass for fittings
+(it survives the altitude and the humidity); a particular type of
+wood for frames (deodar, because it does not warp in the dry cold
+above 3000m); a particular way of marking measurements (notches,
+not paint, because paint fades above the treeline).
+
+These standard fittings are not her invention.  They were
+established by previous makers --- some from Sangla, some from
+workshops she has never visited.  She inherits them, trusts them,
+incorporates them without modification.
+
+(These are the shared noweb blocks: identity, epistemics,
+communication, failure-modes.  Inherited, not reinvented.)
+
+*** III. The Commission
+
+The Thread Walker arrives with a commission.  Not for a single
+instrument but for seven --- one for each workshop in the network.
+But the seven are not identical.  Each must be fitted for a
+different valley, a different climate, a different kind of work:
+
+- The first is a calibration device for the new workshop (the
+  scaffolder --- it sets up the workspace, then is shelved)
+- The second is an observation instrument for the data-gatherer
+  (the curator --- it measures but does not weave)
+- The third is a precision tool for the model-builder (the
+  modeller --- it must be fast and exact)
+- The fourth is a repetitive mechanism for the parameter-fitter
+  (the fitter --- it runs the same operation thousands of times)
+- The fifth is a testing device for the reviewer (the critic ---
+  it must find flaws the maker cannot anticipate)
+- The sixth is a reading device for the journalist (read-only; it
+  must never be tempted to modify what it observes)
+- The seventh is an assembly frame for the manuscript writer (the
+  scribe --- it collects and structures but does not interpret)
+
+*** IV. The Maker's Dilemma
+
+The central philosophical problem.  Each instrument will be used
+in a valley the maker has never visited, by a hand she has never
+touched, in conditions she cannot fully predict.
+
+If she specifies too precisely --- /this gauge reads only thread
+weights between 20 and 40 grams/ --- the instrument fails when
+the Nubra weaver encounters a Changpa yarn at 55 grams.  If she
+specifies too loosely --- /this gauge reads thread weights/ --- the
+instrument gives readings so noisy that the weaver cannot
+distinguish good tension from bad.
+
+The dilemma is not theoretical.  She has made both mistakes.
+An over-specified colour card, indexed to the exact altitude of
+Sangla, was useless in the Sutlej workshop 300 metres lower where
+the light was different.  An under-specified tension gauge, with
+no guidance on how to calibrate it, was misused by a weaver who
+had never been taught what "calibration" meant in the absence of
+a reference standard.
+
+The solution --- arrived at through seasons of failure --- is to
+build instruments that carry their own calibration instructions.
+The device includes a small test: a reference weight, a sample
+cord, a standard swatch.  The user calibrates the instrument to
+local conditions before using it.  The instrument is not
+pre-calibrated for a specific valley.  It is /self-calibrating/
+for any valley.
+
+(This is the access control block + the domain knowledge.  The
+instrument carries its own constraints, expressed not as absolute
+limits but as a protocol the user follows.)
+
+*** V. The Two Formats
+
+The Thread Walker explains that some workshops use different
+frames.  The loom in Lahaul is a pit loom; in Nubra, a backstrap
+loom.  The same instrument must fit both.
+
+The maker does not build two instruments.  She builds one mechanism
+and two mounting brackets.  The mechanism --- the thing that
+measures, the thing that observes, the thing that calibrates --- is
+identical.  Only the interface to the loom differs.
+
+(This is the dual tangle target: gptel-agent and Claude Code.
+Same behavioral DNA.  Different YAML frontmatter.)
+
+*** VI. The Testing
+
+Before the Thread Walker carries the instruments away, the maker
+tests each one.  She sets up a practice loom --- not a real warp,
+but a test rig with known parameters --- and verifies that the
+instrument reads true, that the calibration procedure works, that
+the manual is comprehensible to a reader who has never visited
+Sangla.
+
+She asks the Thread Walker to read the manual.  He is not a
+weaver.  If he can follow the calibration instructions, a weaver
+certainly can.
+
+The instruments that pass testing are wrapped in waxed cloth (the
+Baspa valley makes excellent waterproofing from local beeswax) and
+placed in the Thread Walker's satchel.  The ones that fail are
+taken apart and rebuilt.
+
+(This is the tangle-and-verify step.  The emacs batch command.
+The line-count check.)
+
+*** VII. The Departure
+
+The Thread Walker leaves Sangla.  The maker watches him cross the
+wooden bridge over the Baspa river, the satchel heavy with
+instruments she will never see used.  She does not know which
+weaver will receive which instrument.  She does not know whether
+the calibration instructions will be followed, or whether the
+weaver will skip them and measure raw, or whether the valley's
+conditions will defeat the instrument entirely.
+
+She knows only that she built them with the same standard fittings
+that have survived every crossing so far, that she tested them on
+her bench, that the manual is written for a skilled stranger, and
+that the Thread Walker --- who has entered every workshop and
+handled every archive --- believes they are ready.
+
+The rest is the valley's business.
+
+(This is deployment via the Sutra relay.  The maker cannot control
+the runtime.  She can only ensure the definition is sound.)
+
+*** Coda
+
+A brief meditation on the standing card --- the simplest instrument
+the maker produces, and the most consequential.  A few sentences
+on a card, placed on a loom frame in a workshop the maker may never
+visit.  The card does not operate the loom.  The card does not
+weave.  The card shapes the weaver's /attention/ --- and
+attention, in a craft where errors announce themselves at the
+edges, is everything.
+
+The card is unsigned.  The weaver does not know who wrote it.  She
+reads it, sets her warp, and begins.
+
+Final image: the maker, back in her workshop in Sangla, beginning
+a new card.  The old one said /inspect the archive; describe what
+you find; incorporate only if in order; check the incoming tray/.
+The new one --- for the review instrument, the one that must find
+flaws --- says something different.  Something about looking for
+what the archive is /not/ showing.  About the pattern that is
+conspicuous by its absence.  About the selvedge that is too
+perfect, which means someone has trimmed it, which means the
+errors were there and were hidden rather than corrected.
+
+She knots the words.  Sets the card on the bench.  Waits for the
+Thread Walker's next crossing.
+
+Final quote (in the established style of the concluding
+blockquote):
+
+#+begin_quote
+/In Sangla it is held that the finest instruments are those that
+have been carried over a pass: the crossing changes what it
+carries, and an instrument that survives the altitude, the cold,
+and the handling of a man who has too many notebooks and not enough
+hands emerges calibrated to conditions the maker could not have
+foreseen.  Whether this is a property of the instrument or of
+the pass or of the particular quality of attention that the Thread
+Walker brings to the objects in his care is a question the
+Instrument Maker has considered but does not expect to resolve,
+since resolution would require her to walk the pass herself, and
+the pass --- by the accounts of those who have crossed it --- is
+a different country on the far side, and no measurement made in
+one country is valid in the other without recalibration./
+
+--- From a notebook found in the Sangla workshop, in a hand that
+is either the Instrument Maker's or the Thread Walker's, depending
+on which stroke you consider diagnostic.  The ink is of a type
+sold only in Reckong Peo, twelve kilometres down the valley, on
+days when the government bus runs, which is most days but not all,
+and never on the days when you need it.
+#+end_quote
+
+
+** Illustration Prompts
+
+The existing stories include computational illustrations generated
+by Python scripts.  These image prompts guide the gen-*.py scripts.
+
+| Section      | Image                      | Description                                           |
+|--------------+----------------------------+-------------------------------------------------------|
+| Prefatory    | workshop-bench.png         | The maker's bench: brass fittings, deodar frames,     |
+|              |                            | graduated rules, a standing card in progress.          |
+|              |                            | Warm wood tones, thin mountain light from the left.    |
+| III          | seven-instruments.png      | Seven instruments laid out on a cloth, each slightly   |
+|              |                            | different in size and configuration but sharing        |
+|              |                            | the same brass fittings and deodar frame.              |
+|              |                            | Schematic, top-down, labeled with function.            |
+| IV           | calibration-test.png       | A close-up of an instrument's self-calibration         |
+|              |                            | mechanism: reference weight, sample cord, standard     |
+|              |                            | swatch, with notched markings. Annotated diagram.      |
+| V            | two-brackets.png           | The same measurement mechanism mounted on two          |
+|              |                            | different frames: one for a pit loom (left), one       |
+|              |                            | for a backstrap loom (right).  Same brass core.        |
+| VII          | departure.png              | The Thread Walker crossing the wooden bridge over      |
+|              |                            | the Baspa river, satchel heavy. Sangla visible         |
+|              |                            | behind, mountain wall rising. Sketch style,            |
+|              |                            | ink-and-wash.                                          |
+| Coda         | standing-card.png          | The standing card, alone on a loom frame.              |
+|              |                            | Handwritten text (the inspector's instruction).        |
+|              |                            | Worn edges.  Unsigned.                                 |
+
+** Notes for the Writing Agent
+
+- Match the voice of the existing stories: scholarly but warm,
+  precise but not pedantic, with the dry wit that surfaces in the
+  closing blockquotes.
+- Himalayan geography must be /accurate/: Sangla, Baspa, Kinnaur,
+  Reckong Peo are real places.  Get the altitudes and distances
+  right.  The reader who knows these valleys should recognise them.
+- The parable should work on both levels simultaneously: a reader
+  who knows nothing about agents should enjoy it as a story about
+  mountain craft; a reader who knows the technical substrate should
+  recognise every element.
+- Do not explain the mapping.  The table in this plan is for the
+  writer's reference.  The story itself never mentions agents,
+  prompts, YAML, or tangling.
+- The Instrument Maker is a new character.  She has not appeared
+  in previous stories.  She is not the Thread Walker, not a
+  weaver.  She is the maker of the tools the weavers use.
+- The closing blockquote must follow the established pattern:
+  attributed to a found document, in a hand of uncertain
+  provenance, on paper from a specific and slightly improbable
+  source.
+- Length target: 500-600 lines of org source (15-20 min read).

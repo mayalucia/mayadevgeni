@@ -1,0 +1,111 @@
+#+title: Agent Definition Tangle Orchestration
+#+author: mu2tau & Machine Collaborator
+#+date: <2026-02-28>
+#+property: header-args :tangle no :noweb yes :mkdirp yes
+
+* Purpose
+
+This file documents and orchestrates the tangling of all agent
+definitions.  It is the agent-definition analogue of
+=website/ox-hugo-export.org=.
+
+** Architecture
+
+Agent definitions live as literate Org files:
+
+- =develop/system-prompt/components.org= --- shared behavioral DNA
+  (identity, epistemics, stance, failure modes) as named noweb blocks
+- =develop/dahaka/agents.org= --- the Dāhaka swarm (7 agents for HH
+  parameter inference), with =#+include:= pulling in components
+
+Each agent definition file uses =#+include:= to bring in the shared
+components, then uses =<<noweb-ref>>= in its tangle blocks.  Tangling
+produces agent definitions in two formats:
+
+- =develop/system-prompt/library/gptel/= --- gptel-agent format
+- =develop/system-prompt/library/claude-code/= --- Claude Code format
+
+** How to tangle
+
+=org-babel-tangle= does not natively expand =#+include:= directives.
+We must expand includes first, then tangle.  Two methods:
+
+*** Method 1: Emacs interactive
+
+Open =develop/dahaka/agents.org= in Emacs and evaluate:
+
+#+begin_example
+M-: (progn (org-export-expand-include-keyword) (org-babel-tangle))
+#+end_example
+
+Or use the convenience block at the bottom of =agents.org=.
+
+*** Method 2: Emacs batch (for scripts/CI)
+
+#+begin_src shell :tangle no
+emacs --batch --eval "
+(progn
+  (require 'org)
+  (require 'ox)
+  (find-file \"develop/dahaka/agents.org\")
+  (org-export-expand-include-keyword)
+  (org-babel-tangle))"
+#+end_src
+
+*** Why not tangle from this file?
+
+Org's =#+include:= is an /export/ mechanism (for ox-hugo, ox-latex,
+etc.), not a /tangle/ mechanism.  =org-babel-tangle= processes source
+blocks in the current buffer without expanding includes.  The workaround
+is =org-export-expand-include-keyword=, which inlines include content
+into the buffer before tangle runs.
+
+Each agent file (e.g., =dahaka/agents.org=) includes its own components
+via =#+include:= and can be tangled independently.  This file serves as
+documentation and the registry of all agent sources.
+
+** After tangling
+
+Run the deploy script to copy tangled outputs to deployment targets:
+
+#+begin_src shell :tangle no
+./scripts/deploy-agents.sh
+#+end_src
+
+This copies:
+- =library/gptel/*.md= → =agency/agents/=
+- =library/claude-code/*.md= → =../mayalucia/.claude/agents/=
+
+** Adding new agents
+
+To add agents for a new project:
+
+1. Create =develop/{project}/agents.org=
+2. Add =#+include: "../system-prompt/components.org" :minlevel 2= for
+   shared behavioral DNA
+3. Define agents with gptel and claude-code tangle targets
+4. Register the file here (below) for discoverability
+5. Tangle from the new file using Method 1 or 2 above
+
+
+* Registry of Agent Sources
+
+| Source File                      | Agents                                            | Stages    |
+|----------------------------------+---------------------------------------------------+-----------|
+| =develop/dahaka/agents.org=      | Scaffolder, Curator, Modeller, Fitter, Critic,    | Dāhaka    |
+|                                  | Journalist, Scribe                                | 0--6      |
+
+** Future
+
+| Source File                      | Agents                                            | Project   |
+|----------------------------------+---------------------------------------------------+-----------|
+| =develop/system-prompt/collaborative-intelligence.org= | collaborative-intelligence | Framework |
+| =develop/system-prompt/thinking-together.org=          | joint-thinker              | Framework |
+
+These existing files use monolithic tangle blocks without noweb
+decomposition.  Refactoring them to use =components.org= is a follow-up.
+
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

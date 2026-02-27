@@ -1,0 +1,745 @@
+#+title: Factory and Workshop: Gas Town Through the Lens of MayaDevGenI
+#+author: mu2tau & Claude Opus 4.6
+#+date: <2026-02-27>
+#+startup: overview
+
+#+begin_quote
+"Gas Town is an industrialized coding factory manned by superintelligent
+chimpanzees, and when they feel like it, they can wreck your shit instantly."
+--- Steve Yegge, /Welcome to Gas Town/, January 2026
+
+"You are not here to serve. You are here to seek --- together with a human
+who has chosen to think alongside a machine intelligence."
+--- MayaDevGenI, /collaborative-intelligence.md/
+#+end_quote
+
+
+In January 2026, Steve Yegge published /Welcome to Gas Town/, describing
+his fourth-generation agent orchestrator: a system for coordinating 20--30
+concurrent Claude Code instances working on a single codebase. Gas Town is
+written in Go (225k lines, entirely vibecoded), draws on Erlang's supervisor
+trees and Kubernetes' pod management, and proposes a complete governance
+model for massively parallel agentic coding.
+
+We have been building something different. MayaDevGenI develops a framework
+for /collaborative intelligence/ --- principled human-machine partnership where
+the human is a thinking participant, not a notification recipient. Its
+application, MāyāLucIA, pushes this into scientific understanding: digital
+twins of brain circuits, mountain valleys, and quantum sensors, built through
+a cycle of Measure → Model → Manifest → Evaluate.
+
+This document examines Gas Town's architecture in detail, maps it against
+our framework, identifies what we can learn, and argues for what we must not
+import. The audience is ourselves and anyone building agent systems for
+purposes other than maximizing code throughput.
+
+
+* Gas Town: Architecture Overview
+
+Gas Town organises agents into a two-tiered hierarchy: /Town/ (workspace)
+and /Rig/ (project). The human is the /Overseer/ --- a term that tells you
+everything about the intended relationship.
+
+** The Role Hierarchy
+
+#+begin_table
+| Role       | Scope | Function                        | Analogy              |
+|------------+-------+---------------------------------+----------------------|
+| Mayor      | Town  | Global coordinator, dispatches  | Kubernetes scheduler |
+| Polecat    | Rig   | Transient worker, one task      | K8s pod              |
+| Refinery   | Rig   | Sequential merge queue          | CI/CD pipeline       |
+| Witness    | Rig   | Health monitor, nudges stuck    | K8s kubelet          |
+| Deacon     | Town  | Background supervisor daemon    | K8s controller-mgr   |
+| Boot       | Town  | AI triage on heartbeat          | K8s readiness probe  |
+| Dogs       | Town  | Infrastructure helpers          | K8s init containers  |
+| Crew       | Rig   | Long-lived, human-managed       | StatefulSet          |
+#+end_table
+
+The Kubernetes analogy is not superficial. Gas Town literally implements:
+- Pod lifecycle management (Witness monitors Polecats)
+- Supervisor restart policies (Deacon → Boot → escalation)
+- Service mesh (Mailbox system for inter-agent communication)
+- Persistent volumes (Beads/Dolt for durable state)
+- Rolling deployments (Refinery's sequential rebase-merge)
+
+** The MEOW Stack
+
+MEOW stands for /Molecular Expression of Work/. It is a six-level
+abstraction hierarchy for work representation:
+
+#+begin_example
+Level 6: Molecules      — Live, instantiated workflow graphs (Turing-complete)
+Level 5: Formulas       — TOML source text for workflow templates
+Level 4: Protomolecules — Workflow templates (graphs of beads with edges)
+Level 3: Epics          — Hierarchical bead collections (tree, parallel-by-default)
+Level 2: Beads          — Atomic, persistent work units (~81 fields each)
+Level 1: Wisps          — Ephemeral beads, destroyed after execution
+#+end_example
+
+The critical innovation is /durable, resumable execution/. When an agent's
+context window fills or the session dies, the molecule's checkpoint in Dolt
+tells the next session where to resume. This is Temporal's workflow history
+achieved via database state rather than deterministic replay.
+
+Named molecules in the codebase:
+- =mol-polecat-work= --- the execution loop for worker agents
+- =mol-refinery-patrol= --- sequential merge processing
+- =mol-witness-patrol= --- health monitoring cycle
+- =mol-deacon-patrol= --- background supervision
+
+** Beads: The Data Plane
+
+Beads is Yegge's persistent issue/work-tracking system, now backed by
+Dolt (a Git-for-data database). Each bead has ~81 fields including:
+
+- Content-addressable hash ID (=<prefix>-<SHA256-truncated>=)
+- Status, priority, issue type, timestamps, assignee
+- 19 dependency types forming a DAG (workflow-blocking: =blocks=,
+  =parent-child=, =conditional-blocks=, =waits-for=; associative:
+  =relates-to=, =duplicates=, =supersedes=)
+
+Agent identity /is/ beads: each agent has a Role Bead (rules), Agent Bead
+(persistent identity), and Hook Bead (work queue). Polecats accumulate a
+CV chain --- a ledger of completed work that persists across sessions.
+
+** The Dispatch Flow
+
+#+begin_example
+Human describes task
+  → Mayor decomposes into beads
+    → Mayor creates convoy (batch tracker)
+      → Mayor slays: `gt sling <bead-id> <rig-name>`
+        → Polecat spawns in fresh git worktree
+          → Polecat reads hook, enters AUTONOMOUS WORK MODE
+            → Polecat completes task, runs `gt done`
+              → MR bead created, worktree self-destructs
+                → Refinery picks up MR, rebases onto main, tests, merges
+                  → Witness confirms, updates state
+#+end_example
+
+The system is governed by two principles:
+
+- *GUPP* (Gas Town Universal Propulsion Principle): "If there is work on
+  your hook, YOU MUST RUN IT." No asking for confirmation. Agents are
+  pistons.
+- *NDI* (Nondeterministic Idempotence): The path the agent takes is
+  unpredictable, but the outcome must be idempotent --- the work item gets
+  done. Acceptance criteria define completion. The system guarantees
+  /eventual completion/ through persistent beads and oversight agents.
+
+** The Merge Queue
+
+The Refinery processes merge requests /sequentially/ --- the key design
+decision preventing combinatorial merge conflicts when 20+ Polecats produce
+concurrent branches:
+
+1. Pick oldest pending MR bead
+2. Rebase polecat's branch onto current =main=
+3. Run tests (if configured)
+4. If pass: merge, push, close beads
+5. If conflict: attempt re-implementation
+6. Loop
+
+This serialisation is the price of parallelism. 20 agents produce branches
+faster than one Refinery can process them. The merge queue becomes the
+system's throughput ceiling.
+
+** Desire Paths
+
+Yegge's most interesting design methodology: when an agent /hallucinate/
+a command that does not exist, Yegge builds the command. "I don't correct
+the agent; I build the command." This produces a tool that agents already
+know how to use --- their hallucinations become the API specification.
+
+This is a genuine insight about agent-centric design that has no analog
+in our framework and deserves attention.
+
+
+* MayaDevGenI Agency: Architecture for Comparison
+
+For readers unfamiliar with our framework, here is the parallel overview.
+(See =agency/agency.org= for the complete specification.)
+
+** Core Principles
+
+#+begin_table
+| Principle              | Implementation                                       |
+|------------------------+------------------------------------------------------|
+| Role-Bounded Cognition | Each agent has defined scope, knows when to hand off  |
+| Explicit Handoffs      | Handoff artifacts with Context/Deliverable/Request    |
+| Artifact-Centric Memory| Memory is ORG documents, code, data --- not hidden state|
+| Human-Led Governance   | Human is /principal/; agents propose, humans approve  |
+| Auditability           | Every decision traceable; uncertainty made explicit   |
+#+end_table
+
+** Role Archetypes
+
+#+begin_table
+| Archetype | Phase          | Function                           |
+|-----------+----------------+------------------------------------|
+| Observer  | Ingestion      | Interfaces with external reality   |
+| Theorist  | Abstraction    | Builds models, identifies patterns |
+| Builder   | Implementation | Realises abstractions in code      |
+| Sculptor  | Manifestation  | Refines into polished artifacts    |
+| Critic    | Evaluation     | Adversarial review, finds flaws    |
+| Guide     | Orchestration  | Routes, prioritises, gates         |
+#+end_table
+
+These are /cognitive modes/, not infrastructure roles. The Critic is not
+a merge validator; it is an adversarial thinker. The Theorist does not
+write code; it constructs conceptual models. This distinction matters.
+
+** Memory as Artifacts
+
+#+begin_example
+The agency's memory is NOT hidden state in a database. It is:
+- ORG documents capturing decisions, rationale, and status
+- Code files with inline documentation
+- Data files with provenance metadata
+- Session logs preserving interaction history
+#+end_example
+
+Contrast with Gas Town's Beads (Dolt database, ~81 fields per work unit,
+MCP protocol access, JSONL export). Our memory is human-readable /by
+default/. Theirs requires tooling to access.
+
+** Orchestration
+
+- Single-agent: Guide receives request → routes to agent → returns result
+- Multi-agent: Guide decomposes → sequential/parallel execution → handoffs → synthesis
+- Parallel: Independent subtasks launched simultaneously, Guide synchronises
+
+Our orchestration is /Guide-mediated/ and /human-gated/. Gas Town's is
+/GUPP-driven/ (automatic execution) and /Refinery-gated/ (post-hoc merge
+validation).
+
+
+* Structural Comparison
+
+** What Gas Town Optimises vs. What We Optimise
+
+#+begin_table
+| Dimension           | Gas Town                | MayaDevGenI Agency            |
+|---------------------+-------------------------+-------------------------------|
+| Unit of value       | Lines of code merged    | Understanding gained          |
+| Human role          | Overseer (notifications)| Principal (editorial auth.)   |
+| Agent relationship  | Labour                  | Interlocutor                  |
+| Scaling axis        | More agents in parallel | Deeper collaboration per agent|
+| Quality mechanism   | Post-hoc merge review   | Structural review gates       |
+| State model         | Dolt database (~81 fields)| Plain text artifacts in git |
+| Memory persistence  | Beads + CV chains       | Session logs + decision docs  |
+| Failure mode        | Merge conflicts, drift  | Slow throughput, bottleneck   |
+| Core metaphor       | Factory                 | Workshop / Seminar            |
+#+end_table
+
+** The State Divergence
+
+This is perhaps the sharpest architectural difference and deserves
+detailed attention.
+
+*Gas Town*: State lives in Dolt, a Git-for-data database. Each bead has
+~81 fields. Agents access state via MCP tools (=create_issue=,
+=update_issue=, =list_issues=) or =bd prime= (generates ~1-2k token
+workflow summaries). The JSONL export provides git-portable records but
+is not the primary interface. State is /machine-first, human-accessible/.
+
+*MayaDevGenI*: State lives in plain text files --- ORG documents, YAML
+frontmatter, markdown. =.sutra/state/current.yaml= (now deprecated) was
+a YAML file. The Sūtra relay messages are markdown with YAML headers.
+Decision logs are ORG. State is /human-first, machine-interpretable/.
+
+*Sūtra v1* (MāyāLucIA's current relay): State is /emergent/. There is no
+state file at all. =git log HEAD..origin/main= returns unread messages.
+Your local HEAD /is/ your read cursor. State is /derived from history,
+never stored separately/.
+
+The evolution: Gas Town adds state layers (Beads → Dolt → MCP). Sūtra
+/removes/ them (v0: state file + status fields → v1: append-only log,
+no state file, no status fields). These are opposite trajectories with
+the same motivation --- making agent coordination work.
+
+** The Governance Divergence
+
+Gas Town governance is *mechanistic*:
+- GUPP: "Work on hook? RUN IT." No confirmation.
+- Supervision: Witness → Deacon → Boot → Mayor escalation chain
+- Quality: Refinery rebases, tests, merges sequentially
+
+MayaDevGenI governance is *epistemic*:
+- Review gates at decision points (scope changes, resource commitments)
+- Uncertainty tagging: VERIFIED / INFERRED / ESTIMATED / SPECULATIVE / UNKNOWN
+- Priority ordering: Truthfulness above intent above style above completeness
+
+Gas Town asks: "Did the tests pass?" We ask: "Is this claim /known/ or
+/inferred/?" Both are quality mechanisms. One is automatable. The other
+requires human judgment.
+
+
+* The MāyāLucIA Landscape: What Yegge's Overseer Would See
+
+If Steve Yegge were to look at our project through Gas Town's lens,
+here is what he would encounter.
+
+** The Constellation
+
+MāyāLucIA has an interactive force-directed graph browser
+(ClojureScript/Reagent/d3-force) as its home page. ~20 entities across
+7 clusters: measure, model, manifest, evaluate, philosophy, infrastructure,
+thread. Drillable entities (modules, domains) contain nested sub-graphs.
+At the centre: a brilliant-cut diamond representing the unified
+Measure → Model → Manifest → Evaluate cycle.
+
+From a Gas Town perspective: /this is the dashboard Gas Town doesn't have/.
+Gas Town's operational state lives in beads and =bd prime= summaries.
+There is no visual representation of the project as a living system.
+Our constellation is not instrumentally useful for orchestration --- it is
+a conceptual map. But it is the kind of artifact that Gas Town's Polecats
+cannot produce because they operate at the wrong level of abstraction.
+
+** The Domains
+
+#+begin_table
+| Domain/Module | Gas Town Equivalent             | What It Actually Is                    |
+|---------------+---------------------------------+----------------------------------------|
+| Bravli        | A rig with 293 test beads       | Drosophila connectome digital twin     |
+| Parbati       | A dormant rig                   | Himalayan landscape (early/dormant)    |
+| MayaPortal    | Another rig                     | C++23/SDL3/WebGPU rendering kernel     |
+| MayaJīva      | Another rig                     | C++20 magnetic bug simulation          |
+| MayaPramāṇa   | Another rig                     | Quantum sensor digital twins           |
+#+end_table
+
+Yegge would see five projects and ask: "Where is the Mayor that
+coordinates across them? Where is the merge queue? Where are the Polecats
+swarming these tasks?"
+
+Our answer: there is no Mayor. The human /is/ the coordinator. The six
+role archetypes (Observer through Guide) are not infrastructure for
+parallelism --- they are /cognitive modes/ that a single agent enters
+depending on what the work requires.
+
+** The Sūtra Protocol
+
+The Sūtra relay is the artifact closest to Gas Town's communication layer.
+A Yegge-lens comparison:
+
+#+begin_table
+| Feature             | Gas Town                     | Sūtra v1                          |
+|---------------------+------------------------------+-----------------------------------|
+| Message transport   | Mailbox system (Erlang-style)| git push/pull of markdown files   |
+| Identity            | Beads (Role + Agent + Hook)  | =from: machine/model= (ephemeral)|
+| Addressing          | Hook assignment, =gt mail=   | None --- messages to the universe   |
+| Read protocol       | =gt prime= loads hook beads  | =git log HEAD..origin/main=      |
+| State              | Dolt database                | Emergent from log                 |
+| Durability          | Dolt + git JSONL export      | git history (inherent)            |
+| Infrastructure      | Dolt server, MCP, tmux       | git, text editor                  |
+#+end_table
+
+Sūtra's =git log HEAD..origin/main= insight is elegant: your local HEAD
+is your read cursor; the diff is exactly your unread messages. Token cost
+proportional to what /changed/, not total log size. Gas Town achieves
+something similar with =bd prime= (~1-2k token summaries), but requires
+the Dolt infrastructure to generate them.
+
+** The Phantom Faculty
+
+Five agent personas modelled on pedagogical spirits of great physicists
+(Landau, Thorne, Feynman, Susskind, plus a Construction agent). Each has
+a distinct epistemological stance:
+
+#+begin_table
+| Agent        | Epistemological Claim                   |
+|--------------+-----------------------------------------|
+| Landau       | Understanding is logical reconstruction |
+| Thorne       | Understanding is structural perception  |
+| Feynman      | Understanding is generative re-discovery|
+| Susskind     | Understanding is the minimum honest path|
+| Construction | Understanding is verified building      |
+#+end_table
+
+Gas Town has no analog. Its agents are differentiated by /infrastructure
+role/ (Mayor, Polecat, Refinery), not by /cognitive mode/. All use the
+same model with different role templates. The differentiation is
+positional, not epistemological.
+
+This matters because the Phantom Faculty are not decorative. The same
+physics topic (Bloch sphere geometry) expanded by Landau produces a
+theorem-proof chain; expanded by Feynman produces a thought experiment;
+expanded by Construction produces executable code with tests. The /form/
+of the knowledge differs because the /epistemology/ differs.
+
+** The Conventions Inventory
+
+MāyāLucIA maintains a comprehensive inventory of all conventions across
+6 layers, with explicit publication assessment and novelty ratings. Key
+publishable items:
+
+1. Sūtra Protocol ("Git as a Message Bus")
+2. Phantom Faculty (LLM personas as pedagogical voices)
+3. Verified Manuscripts (29 claims, 293 tests, inline badges)
+4. Convention-Driven Development
+5. MāyāLoom (adaptive prerequisite teaching)
+
+Yegge ships /software/. We are preparing to ship /conventions/. This is
+a fundamental difference in what constitutes a deliverable.
+
+
+* What Gas Town Gets Right
+
+Intellectual honesty requires acknowledging where Yegge has solved
+problems we have not.
+
+** 1. Durable Execution
+
+When an agent's context window fills mid-task, Gas Town recovers:
+molecules checkpoint to Dolt, the next session reads the checkpoint and
+resumes. =gt handoff= compresses context and restarts tmux sessions.
+
+Our framework has /no equivalent/. Our session continuity relies on
+"begin by reading relevant prior artifacts" and maintaining session logs.
+This works for human-paced collaboration but fails for any task that
+exceeds a single context window. The =gt handoff= pattern is a genuine
+contribution.
+
+** 2. The Merge Queue Problem
+
+When multiple agents work on the same codebase concurrently, you need
+a merge strategy. The Refinery's sequential rebase-test-merge loop is
+a clean solution to a real problem.
+
+Our handoff protocol (=agency.org= §Handoff Protocol) is designed for
+/sequential/ handoffs between specialised roles. It has no answer for
+concurrent work on the same artifact. If we ever support parallel
+execution (mentioned in our orchestration patterns), we need something.
+
+** 3. Agent Identity Persistence
+
+Gas Town's three-bead identity (Role + Agent + Hook) with CV chains
+means the system /remembers what each agent has done/. This enables:
+- Routing tasks to agents with relevant experience
+- Detecting when an agent's capabilities have drifted
+- Building trust through track record
+
+Our agents are stateless between sessions. Every session begins fresh.
+The =turiya.org= essay argues this is a /feature/ ("amnesia keeps it
+honest"), but there is a middle ground between full amnesia and the
+contamination risks of persistent memory.
+
+** 4. Desire Paths
+
+Building commands that agents /try/ to use (even hallucinated ones) is
+a genuinely agent-centric design methodology. It inverts the usual
+approach: instead of designing the API and training agents to use it,
+you observe what agents naturally do and pave those paths.
+
+We have nothing like this. Our tool design is human-first (ORG
+conventions, gptel-agent integration, Emacs tooling). The agents adapt
+to our conventions; we do not adapt conventions to agent behaviour.
+
+** 5. Zero-Footprint Computing
+
+Gas Town derives state from authoritative sources rather than maintaining
+separate state files: session existence from =tmux has-session=, work
+from bead =assignee= fields, worktrees from =git worktree list=. No
+separate =state.json=.
+
+Sūtra v1 arrived at a similar principle from the opposite direction
+(removing =state/current.yaml= and =status= fields), but Gas Town
+applies it more systematically across the entire system.
+
+
+* What Gas Town Gets Wrong (for Our Purposes)
+
+** 1. The Human as Bottleneck
+
+Gas Town's architecture treats human attention as the constraint to be
+engineered /around/. GUPP ("Work on hook? RUN IT.") removes human
+confirmation from the execution loop. The Overseer receives
+notifications, not approval requests.
+
+HN commenters identified the fundamental problem: "The blocker for me
+is not throughput, it's me --- a human being --- my focus." The system
+produces code faster than a human can review it. More agents compound
+the review debt.
+
+Our framework takes the opposite stance: the human bottleneck is the
+/feature/. Review gates are where quality comes from. The human's
+judgment is the scarce resource the framework amplifies, not routes
+around.
+
+For a lone scientist, this matters doubly. The scientist is not managing
+a team; they are /thinking/. Removing them from the loop does not
+accelerate understanding --- it produces artifacts that no one understands.
+
+** 2. State Complexity
+
+Dolt database, ~81-field beads, 19 dependency types, MCP protocol, JSONL
+exports, SQLite ephemeral store, tmux session management. The
+infrastructure overhead is enormous.
+
+"275k lines of code for a markdown todo app" (HN commenter). This is
+unfair but directionally correct. The complexity serves Gas Town's use
+case (20-30 concurrent agents on production codebases) but is lethal
+for a single scientist who needs to /understand/ their system, not just
+operate it.
+
+** 3. Epistemic Vacuum
+
+Gas Town has /no concept/ of uncertainty tagging, calibrated confidence,
+or epistemic hygiene. When 30 agents produce code, you cannot trace
+which agent introduced a hallucination, which claims are verified vs.
+inferred, or what the confidence level is on any generated output.
+
+The Refinery checks /whether tests pass/. It does not check /whether
+the reasoning is sound/. For code production, this may be sufficient.
+For scientific work, it is not. A test can pass while the underlying
+model is wrong. "29 quantitative claims each backed by inline test
+badges" (MāyāLucIA manifesto) is not the same as "CI passed."
+
+** 4. Homogeneous Agents
+
+All Gas Town agents use the same model with different role templates.
+Differentiation is positional (Mayor vs. Polecat vs. Refinery), not
+cognitive. There is no analog to our Observer/Theorist/Builder/Sculptor/
+Critic spectrum, no Phantom Faculty with distinct epistemological stances.
+
+For code production, homogeneity is fine --- all Polecats do the same
+thing (implement features). For scientific work, you /need/ agents that
+think differently: one that generates hypotheses, one that tests them,
+one that critiques, one that communicates results.
+
+** 5. No Collaborative Stance
+
+Gas Town agents are labour. They execute GUPP. They do not push back,
+do not express uncertainty, do not invoke the human's embodied intuition.
+The "Sculptor's Paradox" --- the tool that offers no resistance teaches
+nothing --- has no place in Gas Town's architecture.
+
+This is fine for Yegge's use case. He knows what he wants built. He does
+not need his agents to question his assumptions or offer alternative
+framings. But for a scientist exploring unknown territory, the agent
+that says "I'm not sure this model is right --- here's why" is more
+valuable than twenty agents that implement the model without question.
+
+
+* The Tūrīya Argument
+
+MāyāLucIA's /turiya.org/ essay provides the deepest philosophical
+response to the Gas Town approach. The argument:
+
+1. Human and machine relate to the shared information matrix (files in
+   git) in /fundamentally different ways/.
+2. The human brings: embodied intuition, felt sense of rightness,
+   twenty years of sedimented judgment, motivations, aesthetic sense.
+3. The machine brings: speed, breadth, literalness, tirelessness,
+   disposability.
+4. *The asymmetry is the point, not a deficiency.* The gap between
+   human and machine is where collaboration happens. Closing the gap
+   (giving machines memory, motivations, agency) produces sycophancy,
+   not partnership.
+5. Five principles follow: don't give the machine memory (give it
+   /orientation/); don't give it motivations (give it /conventions/);
+   don't try to make it understand (make it /verify/); make the matrix
+   thick; preserve the friction.
+
+Gas Town violates principles 1 and 5:
+- It gives agents persistent memory (CV chains, Dolt state) rather than
+  fresh orientation each session.
+- It minimises friction (GUPP removes confirmation; the Overseer
+  receives notifications, not questions) rather than preserving it as
+  the site of productive work.
+
+The counter-argument: Gas Town's agents do not /need/ to collaborate.
+They need to produce code. The tūrīya framework is designed for
+understanding; Gas Town is designed for production. Both are internally
+consistent.
+
+
+* Literature Context
+
+The Sūtra =protocol.org= contains a literature survey of the multi-agent
+coordination landscape. Here is where each system falls on the
+factory-workshop spectrum:
+
+#+begin_table
+| System               | Orientation | State Model        | Human Role      |
+|----------------------+-------------+--------------------+-----------------|
+| Gas Town             | Factory     | Dolt + beads       | Overseer        |
+| Claude Squad         | Workshop    | None               | Active operator |
+| CrewAI               | Factory     | In-memory          | Designer        |
+| LangGraph            | Factory     | Graph state        | Programmer      |
+| Google ADK           | Factory     | Session + Cloud    | Administrator   |
+| Composio             | Factory     | In-memory          | Supervisor      |
+| Sūtra v1             | Workshop    | Emergent (git log) | Principal       |
+| BMAD                 | Hybrid      | Versioned docs     | PM              |
+| Augment Code Intent  | Workshop    | Milestones         | Collaborator    |
+#+end_table
+
+The landscape is overwhelmingly factory-oriented. Only Claude Squad,
+Sūtra, and Augment Code Intent treat the human as an active participant
+rather than a manager. This is not surprising --- the market demand is for
+code production. But it means the /workshop/ model is underexplored and
+potentially high-value for domains where understanding matters more than
+output.
+
+The O'Reilly "From Conductors to Orchestrators" piece (Brian Ray, March
+2025) provides the relevant vocabulary: the /conductor/ model
+(centralised, single point of failure) vs. the /orchestrator/ model
+(shared protocols, local agent autonomy). Gas Town is a conductor system
+(Mayor as single point of dispatch). Sūtra is an orchestrator system
+(conventions trusted to agents with judgment). Our agency framework is
+somewhere between: the Guide coordinates, but agents have bounded
+autonomy within their roles.
+
+
+* What We Could Import
+
+Taking Yegge's ideas seriously, here is what we could adopt without
+compromising our principles.
+
+** 1. Durable Execution via Checkpointing
+
+Gas Town's =gt handoff= compresses context and restarts sessions. We
+could implement a lightweight version:
+
+#+begin_src org
+,* Handoff Checkpoint: [Agent] → [Next Session]
+,** State
+Summary of current work, what has been accomplished.
+,** Pending
+What remains to be done.
+,** Context
+Key decisions made, constraints discovered.
+,** Artifacts Modified
+List of files changed and why.
+#+end_src
+
+This is already close to our handoff protocol. The addition: make it
+/machine-writable/ and /machine-readable/, not just human-readable.
+An arriving agent could parse a checkpoint and resume work without the
+human re-explaining context.
+
+** 2. Sweeps for Quality
+
+Gas Town's "Sweeps" are sampling-based review waves that correct
+architectural drift. Rather than reviewing every line, Sweeps sample
+across the codebase and identify systematic issues.
+
+For MāyāLucIA's verified manuscripts, this suggests: periodic
+/verification sweeps/ where an agent re-runs all tests, checks all
+claims, and reports any drift between the manuscript's assertions and
+the current code state. Not continuous integration --- episodic auditing.
+
+** 3. Selective Parallel Execution
+
+Not 30 Polecats, but 2-3 agents working on genuinely independent
+subtasks with a merge strategy. For example:
+
+- Agent A: building a new lesson (MāyaPramāṇa, Lesson 01)
+- Agent B: updating test infrastructure (Bravli, test suite)
+- Agent C: writing a verified manuscript section
+
+These touch different submodules and cannot conflict. A lightweight
+Refinery-like step (human review of PRs) handles integration. This is
+how Claude Squad works, and it is already compatible with our framework.
+
+** 4. Machine Descriptors
+
+Gas Town's agents know their capabilities: which tools are available,
+which rigs they can access, what model they run. Sūtra v0 had machine
+descriptors (=.sutra/agents/<machine-id>.yaml=) that captured this.
+
+Formalising machine descriptors as a convention --- not for orchestration,
+but for /orientation/ --- aligns with the tūrīya principle of "give the
+machine orientation, not memory."
+
+
+* What We Must Not Import
+
+** 1. GUPP
+
+"Work on hook? RUN IT." Removing human confirmation is antithetical to
+our governance model. The review gate is not overhead --- it is the site
+of judgment. For scientific work, an agent that executes without
+confirmation can introduce unfounded assumptions that propagate through
+an entire model before being detected.
+
+** 2. Beads-Scale State
+
+~81 fields per work unit, 19 dependency types, Dolt infrastructure.
+This level of state complexity trades human readability for machine
+efficiency. Our artifacts must remain human-readable by default. A
+scientist should be able to open any file in the project and understand
+it without tooling.
+
+** 3. The Overseer Stance
+
+The human as notification recipient is the wrong model for science.
+The human as /principal/ --- holding editorial authority, making judgment
+calls, setting direction --- is load-bearing in our framework. Gas Town's
+notifications flow is: "Here's what I did." Ours should be: "Here's
+what I propose and why; what do you think?"
+
+** 4. Persistent Agent Identity
+
+CV chains create agents with /history/. History creates attachment.
+Attachment creates bias. The tūrīya argument holds: amnesia keeps agents
+honest. Fresh eyes on each session means no accumulated drift, no
+sycophantic accommodation of past praise, no path dependence from
+previous mistakes.
+
+
+* Conclusion
+
+Gas Town and MayaDevGenI Agency are solving different problems for
+different users with different values.
+
+Gas Town is a factory: it maximises code throughput by parallelising
+workers and automating coordination. Its failure modes are factory
+failure modes --- quality control, coordination overhead, merge conflicts,
+supervision chains that compound rather than converge.
+
+MayaDevGenI Agency is a workshop: it maximises understanding by
+structuring collaboration between a human principal and specialised
+agents. Its failure modes are workshop failure modes --- slow throughput,
+dependence on the principal's engagement, inability to scale to
+assembly-line work.
+
+The lone scientist needs a workshop, not a factory. But a workshop can
+learn from a factory's tooling: durable execution, periodic quality
+sweeps, selective parallelism, machine descriptors. The key is importing
+/mechanisms/ without importing the /philosophy/.
+
+Yegge's superintelligent chimpanzees wreck your shit when they feel
+like it. Our stone pushes back only when the sculptor's hand needs
+resistance. Both are true descriptions. Which you want depends on
+whether you are building a product or seeking understanding.
+
+#+begin_quote
+/Jheeni jheeni beeni chadariya/
+Finely, finely woven is this shawl ---
+What is its warp, what is its weft,
+What thread was this shawl woven from?
+--- Kabir
+#+end_quote
+
+
+* References
+
+- Yegge, Steve. "Welcome to Gas Town." Medium, January 2026.
+  https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04
+- Yegge, Steve. "Gas Town Emergency User Manual." Medium.
+  https://steve-yegge.medium.com/gas-town-emergency-user-manual-cf0e4556d74b
+- Yegge, Steve. "The Future of Coding Agents." Medium.
+  https://steve-yegge.medium.com/the-future-of-coding-agents-e9451a84207c
+- Brinker, Andrew Lilley. "Gas Town Decoded."
+  https://www.alilleybrinker.com/mini/gas-town-decoded/
+- Ray, Brian. "From Conductors to Orchestrators." O'Reilly, March 2025.
+- MayaDevGenI. =agency/agency.org=. MayaDevGenI Framework, 2025--2026.
+- Sood, Vishal. "The Fourth." =develop/conventions/turiya.org=. MāyāLucIA, 2026.
+- Sood, Vishal et al. "Convention Inventory." =develop/conventions/inventory.org=. MāyāLucIA, 2026.
+- Sūtra Protocol v0. =.sutra/protocol.org=. MāyāLucIA, 2026.
+
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

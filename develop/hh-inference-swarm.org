@@ -1,0 +1,776 @@
+#+title: Project Dāhaka: Hodgkin-Huxley Parameter Inference with a Scientific Swarm
+#+author: mu2tau & Claude Opus 4.6
+#+date: <2026-02-27>
+#+startup: overview
+#+property: header-args :eval never
+
+#+begin_quote
+Given an experimental voltage trace from a single neuron, infer the
+biophysical parameters that explain it. Quantify what you know, what
+you infer, and what remains uncertain.
+#+end_quote
+
+
+* Discussion: Why This Project
+
+** The Scientific Problem
+
+Every neuron in the Allen Cell Types Database has a voltage trace --- a recording of what the cell did when current was injected. Allen also provides GLIF models (Generalised Leaky Integrate-and-Fire): simplified black-box fits that reproduce firing patterns without biophysical content. These are useful but opaque. They tell you /what/ the neuron does, not /why/.
+
+The inverse problem: given the voltage trace, infer the Hodgkin-Huxley parameters (ion channel conductances, activation/inactivation kinetics, capacitance, leak) that produced it. This is a Bayesian inference problem. The posterior distribution over parameters tells you not just the best fit, but the /uncertainty/ --- which parameters are tightly constrained by the data and which are degenerate.
+
+This matters in a world of deep learning because:
+- DL can fit any trace, but the fit is not interpretable
+- DL does not give calibrated uncertainty
+- DL does not generalise to parameter regimes outside training data
+- A biophysical model with posterior uncertainty is a /scientific claim/; a neural network fit is a /statistical summary/
+
+** Why This Project Needs a Swarm
+
+The decomposition is natural and non-trivial:
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────────┐
+│                     HH INFERENCE PIPELINE                       │
+│                                                                  │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐    │
+│  │  DATA    │   │  MODEL   │   │ INFERENCE │   │ COMPARE  │    │
+│  │ curator  │──▶│ builder  │──▶│  engine   │──▶│ to GLIF  │    │
+│  └──────────┘   └──────────┘   └──────────┘   └──────────┘    │
+│       │              │              │              │             │
+│       ▼              ▼              ▼              ▼             │
+│  [Allen API]   [HH simulator] [MCMC chains]  [statistics]      │
+│  [cell list]   [ion channels] [posteriors]   [figures]          │
+│  [metadata]    [protocols]    [diagnostics]  [claims]           │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              JOURNALIST (reads all, writes briefs)        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  Scientist: directs, reviews gates, judges interpretation       │
+└─────────────────────────────────────────────────────────────────┘
+#+end_example
+
+The agents share code and data structures. The inference engine imports
+the model builder's simulator. The comparator reads outputs from both
+the inference engine and the Allen GLIF fits. The journalist reads
+everything. This is where merge conflicts /actually happen/ ---
+unlike MāyāLucIA's submodules, which are independent.
+
+** Why From Scratch
+
+We could extend Bravli's existing toolkit. We choose not to, because
+the purpose is to /feel/ the orchestration problem. Starting from
+=git init= with multiple agents means every coordination failure is
+ours to discover, not inherited from prior architecture.
+
+The work will live in =mayalucia/domains/bravli/= as a new subtree
+(=inference/= or similar), but the conventions, agent definitions, and
+orchestration patterns are designed here in mayadevgeni and tested there.
+
+
+* The Three-Faced Document Convention
+
+Every stage of this plan has three faces:
+
+** =discuss= (Human Reader)
+The /story/ of this stage. Why we are doing it. What the scientist
+should understand. Written in prose, with analogies and motivation.
+A human can read only the =discuss= sections and understand the
+entire project arc.
+
+** =plan= (Authoritative Intent)
+The /decisions/ for this stage. What will be built, in what order,
+with what dependencies. When =plan= and =spec= disagree, =plan= is
+authoritative. Written for a human who needs to review and approve.
+
+** =spec= (Machine Reader)
+The /extractable instructions/ for an agent. Self-contained enough
+that an agent receiving only this section plus a reference to the
+full plan can execute. Uses a *domain shorthand* that evolves over
+the project's life (see §Domain Language below).
+
+The ORG structure uses tagged headings:
+
+#+begin_src org :eval never
+,* Stage N: Title
+,** discuss                                                    :discuss:
+Prose for the human reader.
+,** plan                                                       :plan:
+Decisions and dependencies.
+,** spec                                                       :spec:
+Agent-executable instructions.
+#+end_src
+
+An agent can be given a filtered view: =org-match "+spec"= extracts
+all spec sections. A human reads linearly. The Guide agent reads
+=plan= to route, =spec= to dispatch.
+
+
+* The Self-Organising Domain Language
+
+** discuss                                                      :discuss:
+
+This is the most speculative and potentially most valuable idea in
+the plan.
+
+When agents work on a shared project, they develop /implicit/
+conventions: naming patterns, file locations, function signatures,
+data formats. In Gas Town, this is unmanaged --- agents just write
+code and the Refinery merges it. Drift accumulates. Sweeps correct it.
+
+We propose to make it /explicit and evolving/. At the start of the
+project, agent specs are verbose --- full paths, complete function
+signatures, detailed context. As the project matures, a shared
+vocabulary crystallises. Terms that recur get defined once and
+referenced thereafter.
+
+This is how human teams work: early meetings are long and
+context-heavy; later, a word suffices because the team has built
+shared language. The difference: human teams build this language
+tacitly. We build it as an explicit artifact.
+
+** plan                                                         :plan:
+
+The domain language is a living glossary maintained as an ORG file
+(=glossary.org=) at the project root. It contains:
+
+1. *Terms*: short names for recurring concepts
+2. *Paths*: canonical file locations
+3. *Interfaces*: function signatures that agents can assume exist
+4. *Conventions*: naming, formatting, testing patterns
+5. *Shorthands*: compressed references for agent specs
+
+The glossary is /append-mostly/: new terms are added as the project
+grows. Existing terms are updated only at review gates. Agents are
+instructed to use glossary terms in handoffs and specs.
+
+*Token budget reduction*: early specs might say "run the
+Hodgkin-Huxley simulator defined in =src/model/hh.py=, function
+=simulate_hh(params: HHParams, protocol: StimProtocol) -> VTrace=,
+with parameters drawn from the posterior samples in
+=data/posteriors/{cell_id}/chains.npz=". A mature spec says:
+"=HH.simulate= on =posterior/{cell_id}=". The glossary resolves
+the rest.
+
+** spec                                                         :spec:
+
+#+begin_src yaml :eval never
+# glossary.org bootstrap — initial entries
+# Updated by: human at review gates; agents propose additions via relay
+
+TERMS:
+  HH: Hodgkin-Huxley multi-compartment neuron model
+  GLIF: Generalised Leaky Integrate-and-Fire (Allen baseline)
+  ACT: Allen Cell Types Database
+  VTrace: voltage trace array, shape (n_timesteps,), units mV
+  StimProtocol: current injection protocol (onset, duration, amplitude)
+  HHParams: dataclass of ion channel parameters (see src/model/params.py)
+
+PATHS:
+  root: mayalucia/domains/bravli/inference/
+  model: {root}src/model/
+  data-raw: {root}data/raw/{cell_id}/
+  data-processed: {root}data/processed/{cell_id}/
+  posteriors: {root}data/posteriors/{cell_id}/
+  figures: {root}figures/{cell_id}/
+  briefs: {root}briefs/
+
+INTERFACES:
+  HH.simulate: (params: HHParams, protocol: StimProtocol) -> VTrace
+  HH.log_likelihood: (params: HHParams, observed: VTrace, protocol: StimProtocol) -> float
+  ACT.fetch_cell: (cell_id: int) -> (VTrace, StimProtocol, metadata: dict)
+  ACT.list_cells: (cell_type: str, region: str) -> list[int]
+  MCMC.run: (log_posterior: Callable, init: HHParams, n_samples: int) -> ChainResult
+  GLIF.fetch_model: (cell_id: int) -> GLIFParams
+  GLIF.simulate: (params: GLIFParams, protocol: StimProtocol) -> VTrace
+
+CONVENTIONS:
+  tests: pytest, one test file per module, in tests/ mirroring src/
+  figures: matplotlib, saved as PDF + PNG, deterministic seeds
+  claims: tagged VERIFIED/INFERRED/ESTIMATED/SPECULATIVE per glossary convention
+  commits: conventional commits (feat/fix/test/docs), one logical change per commit
+#+end_src
+
+
+* Stage 0: Bootstrap
+
+** discuss                                                      :discuss:
+
+Before any science, the project needs a skeleton: directory structure,
+dependencies, CI, and the glossary. This is mechanical work. One agent
+can do it in a single session.
+
+The skeleton must be minimal --- just enough structure that subsequent
+agents can orient themselves. Overdesigning the skeleton is the classic
+framework trap. We want: a =pyproject.toml=, a =src/= tree, a =tests/=
+tree, a =data/= tree, a =CLAUDE.md=, and the glossary.
+
+** plan                                                         :plan:
+
+- Create =mayalucia/domains/bravli/inference/= as new subtree
+- Initialise: =pyproject.toml= (name: =hh-inference=, deps: numpy,
+  scipy, matplotlib, requests)
+- Directory: =src/model/=, =src/data/=, =src/inference/=, =src/compare/=,
+  =tests/=, =data/=, =figures/=, =briefs/=
+- =CLAUDE.md= with project description, glossary reference, and
+  the three-face convention
+- =glossary.org= with initial terms (from §Domain Language above)
+- One smoke test: =tests/test_smoke.py= that imports the package
+- No science yet. Just scaffolding.
+
+*Gate*: human reviews skeleton before any agent builds on it.
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: bootstrap
+AGENT: builder
+INPUTS: none
+OUTPUTS: project skeleton at {root}
+STEPS:
+  1. Create directory tree per PATHS in glossary
+  2. Write pyproject.toml: name=hh-inference, python>=3.11,
+     deps=[numpy, scipy, matplotlib, requests]
+  3. Write src/__init__.py, src/model/__init__.py, etc.
+  4. Write CLAUDE.md from template (collaborative-intelligence stance,
+     three-face convention, glossary reference)
+  5. Write glossary.org from bootstrap spec above
+  6. Write tests/test_smoke.py: `import hh_inference; assert True`
+  7. Run: pytest tests/test_smoke.py
+DONE-WHEN: pytest passes, `git status` clean, human approves skeleton
+#+end_src
+
+
+* Stage 1: Data Curation
+
+** discuss                                                      :discuss:
+
+The Allen Cell Types Database provides electrophysiology recordings
+for thousands of mouse cortical neurons. Each cell has:
+- Raw voltage traces under multiple stimulation protocols
+- Metadata (cell type, cortical layer, region, transgenic line)
+- Pre-computed features (firing rate, AP shape, adaptation index)
+- GLIF model fits (our baseline)
+
+We do not need all cells. We start with a curated subset: ~20 cells
+spanning 3--4 cell types (e.g., Pvalb, Sst, Vip, excitatory),
+selected for data quality and diversity of firing patterns. This gives
+us enough to see whether the inference pipeline works before scaling.
+
+The data agent's job: fetch, validate, preprocess, and describe.
+The "describe" step matters --- it produces a cell catalogue that the
+scientist reviews and the other agents consume. This is the Observer
+archetype in action.
+
+** plan                                                         :plan:
+
+- Use Allen SDK (=allensdk=) or REST API to fetch cell metadata
+- Select ~20 cells: criteria documented in =data/selection.org=
+  - At least 3 cell types
+  - Long square stimulation protocol available
+  - Sufficient spikes for inference (>10 APs per sweep)
+  - GLIF model available for comparison
+- For each cell:
+  - Download voltage trace + stimulus
+  - Extract relevant sweeps (long square, ramp)
+  - Save as =data/raw/{cell_id}/traces.npz=
+  - Compute basic features: firing rate, AP amplitude, input resistance
+  - Save features as =data/processed/{cell_id}/features.json=
+- Produce =data/catalogue.org=: table of selected cells with types,
+  features, quality notes
+- Tests: one per cell type verifying data integrity
+
+*Gate*: scientist reviews cell catalogue. Approves or requests changes.
+
+*Parallel opportunity*: once catalogue is approved, Stage 2 can begin
+while data agent continues enriching metadata. This is the first
+genuine concurrent-agent moment.
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: curate-data
+AGENT: observer
+INPUTS: glossary.org (for PATHS, TERMS)
+OUTPUTS:
+  - data/raw/{cell_id}/traces.npz for each selected cell
+  - data/processed/{cell_id}/features.json for each selected cell
+  - data/catalogue.org (cell table for human review)
+  - data/selection.org (selection criteria, documented)
+  - tests/test_data.py
+STEPS:
+  1. Query ACT for mouse cortical neurons with long_square protocol
+  2. Filter: >=10 APs, GLIF model available, metadata complete
+  3. Stratify: select ~5 per type across {Pvalb, Sst, Vip, excitatory}
+  4. For each cell: ACT.fetch_cell -> save to data-raw/{cell_id}/
+  5. Compute features (firing_rate, ap_amplitude, input_resistance,
+     adaptation_index, rheobase) -> save to data-processed/{cell_id}/
+  6. Write catalogue.org: | cell_id | type | layer | region | n_aps | features |
+  7. Write selection.org: criteria, rationale, exclusions
+  8. Write tests: verify trace shapes, feature ranges, no NaN
+DONE-WHEN: pytest passes, catalogue.org complete, GATE:human approves catalogue
+GLOSSARY-PROPOSES:
+  cell_id: Allen specimen ID (int)
+  long_square: 1s current injection at fixed amplitude
+  features.json: {firing_rate, ap_amplitude, input_resistance, adaptation_index, rheobase}
+#+end_src
+
+
+* Stage 2: Model Builder
+
+** discuss                                                      :discuss:
+
+The Hodgkin-Huxley model is deceptively simple in concept and
+surprisingly tricky in implementation. A single-compartment model
+with Na+, K+, and leak channels has 11 parameters. Add a slow
+potassium channel (for adaptation) and a calcium-dependent potassium
+channel (for afterhyperpolarisation), and you are at ~20 parameters.
+
+The implementation must be:
+- *Fast*: MCMC will call the simulator 100,000+ times per cell
+- *Differentiable* (ideally): for gradient-based inference methods
+- *Validated*: against known analytical solutions (e.g., threshold
+  behaviour, f-I curves for simple cases)
+- *Pure*: no global state, deterministic given parameters and protocol
+
+This is the Builder archetype. The model agent writes the simulator,
+the theorist (a later stage) will analyse its parameter sensitivities.
+
+** plan                                                         :plan:
+
+- Implement =HHParams= dataclass: all conductances, reversal potentials,
+  time constants, capacitance
+- Implement =simulate_hh=: RK4 integration of HH ODEs
+  - Input: =HHParams=, =StimProtocol=
+  - Output: =VTrace= (voltage array)
+  - Must handle: subthreshold, spiking, adaptation, burst
+- Implement =log_likelihood=: Gaussian observation model on voltage
+  - Noise variance as parameter (inferred, not fixed)
+- Validate against:
+  - Analytical threshold for simplified 2-variable HH
+  - Published f-I curves for standard HH parameters
+  - Numerical accuracy: compare RK4 with dt=0.01 vs dt=0.001
+- Performance target: <100ms per trace simulation (for MCMC feasibility)
+- Write as pure functions. No classes with hidden state.
+
+*Dependency*: needs =StimProtocol= format from Stage 1 (available once
+skeleton exists; does not need full data catalogue).
+
+*Parallel opportunity*: model builder and data curator can work
+simultaneously after Stage 0. They share only the =StimProtocol=
+data format. This is the first merge test.
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: build-model
+AGENT: builder
+INPUTS: glossary.org, StimProtocol format from Stage 0
+OUTPUTS:
+  - src/model/params.py (HHParams dataclass)
+  - src/model/hh.py (simulate_hh, log_likelihood)
+  - src/model/channels.py (Na, K, leak, slow-K, Ca-K channel kinetics)
+  - src/model/validate.py (analytical checks)
+  - tests/test_model.py (threshold, f-I, numerical convergence)
+STEPS:
+  1. Define HHParams: g_na, g_k, g_leak, g_slow_k, g_ca_k,
+     e_na, e_k, e_leak, c_m, tau_adaptation, sigma_obs
+  2. Implement channel kinetics as pure functions:
+     alpha_m(V), beta_m(V), etc. using standard HH formulas
+  3. Implement HH.simulate: RK4 with configurable dt (default 0.025 ms)
+  4. Implement HH.log_likelihood: sum of Gaussian log-probs at
+     observation points (subsample at 10 kHz to reduce cost)
+  5. Validate: threshold test, f-I curve test, dt convergence test
+  6. Benchmark: assert simulate < 100ms for 1s trace on single core
+DONE-WHEN: all tests pass, benchmark met, human approves API
+GLOSSARY-PROPOSES:
+  channels: {Na, K, leak, slow-K, Ca-K}
+  dt: integration timestep, default 0.025 ms
+  subsample: reduce observation points to 10 kHz for likelihood
+#+end_src
+
+
+* Stage 3: Inference Engine
+
+** discuss                                                      :discuss:
+
+This is the heart of the project: Bayesian parameter inference via
+Markov Chain Monte Carlo.
+
+The posterior distribution P(θ|data) ∝ P(data|θ) × P(θ) tells us:
+which parameter combinations explain the observed voltage trace, and
+how uncertain we are about each. The likelihood P(data|θ) comes from
+the HH simulator (Stage 2). The prior P(θ) encodes biophysical
+constraints (conductances are positive; time constants are bounded;
+reversal potentials have known ranges).
+
+MCMC is computationally straightforward but requires care:
+- Proposal tuning (adaptive Metropolis or NUTS/HMC)
+- Convergence diagnostics (R-hat, effective sample size)
+- Multiple chains for mixing assessment
+- Thinning and storage
+
+The key design decision: we run MCMC on each cell /independently/.
+This makes it embarrassingly parallel --- the first genuine Gas Town
+moment. Five agents can fit five cells simultaneously, touching
+different =data/posteriors/{cell_id}/= directories with no conflicts.
+
+This is where we test: can we coordinate parallel agents on shared
+code (the simulator) writing to separate data directories?
+
+** plan                                                         :plan:
+
+- Implement MCMC sampler:
+  - Start with adaptive Metropolis-Hastings (simple, robust)
+  - Later: add emcee or NUTS if needed
+  - Configurable: n_chains, n_samples, n_warmup, thin
+- Define priors: log-normal for conductances, uniform for reversal
+  potentials, half-normal for noise sigma
+- Per-cell inference workflow:
+  1. Load trace and protocol from =data/processed/{cell_id}/=
+  2. Initialise chains from prior draws
+  3. Run MCMC (target: 4 chains × 10,000 post-warmup samples)
+  4. Compute diagnostics: R-hat, ESS, acceptance rate
+  5. Save: =data/posteriors/{cell_id}/chains.npz=,
+     =data/posteriors/{cell_id}/diagnostics.json=
+- Batch runner: loop over catalogue cells, optionally parallel
+- Diagnostic plots: trace plots, corner plots, posterior predictive
+
+*Gate*: scientist reviews diagnostics for first 3 cells before batch.
+Are chains mixing? Are posteriors informative? Are there degeneracies?
+
+*Parallel execution*: after gate approval, launch N agents, one per
+cell or per cell-batch. Each writes to its own ={cell_id}/= directory.
+No merge conflicts. The =src/inference/= code is read-only for these
+agents; only the data curator (Stage 1) or the human modifies shared
+code at this stage.
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: run-inference
+AGENT: builder (inference specialist)
+INPUTS: glossary.org, HH.simulate, HH.log_likelihood, data-processed/{cell_id}/
+OUTPUTS:
+  - src/inference/mcmc.py (MCMC.run, adaptive MH)
+  - src/inference/priors.py (prior definitions)
+  - src/inference/diagnostics.py (rhat, ess, acceptance)
+  - src/inference/plots.py (trace, corner, posterior-predictive)
+  - data/posteriors/{cell_id}/chains.npz (per cell)
+  - data/posteriors/{cell_id}/diagnostics.json (per cell)
+  - figures/{cell_id}/trace_plot.pdf, corner_plot.pdf, pp_check.pdf
+  - tests/test_inference.py
+STEPS:
+  1. Implement log_prior: log-normal(g_*), uniform(e_*), half-normal(sigma)
+  2. Implement log_posterior = log_likelihood + log_prior
+  3. Implement adaptive MH: proposal covariance from warmup samples
+  4. Implement convergence: rhat < 1.05, ESS > 400, acceptance 0.15-0.50
+  5. Run on 3 pilot cells (GATE: human reviews diagnostics)
+  6. If approved: batch run on all catalogue cells
+  7. Generate diagnostic plots per cell
+DONE-WHEN: all cells fitted, all R-hat < 1.05, diagnostics.json complete
+PARALLEL: cells are independent; N agents can run simultaneously,
+  each writing to posteriors/{cell_id}/. No shared writes.
+GLOSSARY-PROPOSES:
+  chains.npz: {samples: (n_chains, n_samples, n_params), param_names: list}
+  diagnostics.json: {rhat: dict, ess: dict, acceptance: float, runtime_s: float}
+  pilot: first 3 cells for human review before batch
+#+end_src
+
+
+* Stage 4: Comparison to GLIF
+
+** discuss                                                      :discuss:
+
+The comparison to Allen's GLIF models is the scientific payoff.
+GLIF models are fitted to reproduce firing patterns using a simplified
+(non-biophysical) framework. They are fast and accurate at
+interpolation. Our HH inference is slower but provides:
+
+1. *Interpretable parameters*: ion channel conductances have
+   biophysical meaning; GLIF parameters do not
+2. *Uncertainty*: posterior distributions show what is constrained
+   vs. degenerate
+3. *Extrapolation*: HH models predict behaviour under novel stimuli;
+   GLIF models do not (untested claim — this is a hypothesis to verify)
+
+The comparison agent (Critic archetype) must be adversarial: actively
+seeking cases where GLIF outperforms HH, where our uncertainty is
+poorly calibrated, where our model fails.
+
+** plan                                                         :plan:
+
+- Fetch GLIF parameters and simulate GLIF predictions for each cell
+- Metrics:
+  - Spike time accuracy (Victor-Purpura distance or similar)
+  - Subthreshold voltage RMSE
+  - Firing rate prediction under held-out stimuli
+  - Posterior predictive coverage (calibration check)
+- Figures:
+  - Per cell: HH posterior predictive vs GLIF vs data (overlay)
+  - Summary: scatter of HH vs GLIF accuracy across cells
+  - Parameter correlation heatmap (which channels trade off?)
+- Claims: each comparison statement tagged VERIFIED/INFERRED/SPECULATIVE
+- Write =results/comparison.org=: the proto-manuscript section
+
+*Gate*: scientist reviews comparison. Are the claims supported?
+Are there surprises? Does the HH model fail interestingly?
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: compare-to-glif
+AGENT: critic
+INPUTS: posteriors/{cell_id}/, data-processed/{cell_id}/, glossary.org
+OUTPUTS:
+  - src/compare/glif.py (GLIF.fetch_model, GLIF.simulate)
+  - src/compare/metrics.py (spike_distance, subthreshold_rmse, coverage)
+  - src/compare/figures.py (overlay, scatter, heatmap)
+  - figures/comparison/ (summary plots)
+  - results/comparison.org (tagged claims)
+  - tests/test_compare.py
+STEPS:
+  1. For each cell: fetch GLIF params from Allen, simulate GLIF prediction
+  2. For each cell: draw 100 samples from HH posterior, simulate each
+  3. Compute metrics: spike_distance(HH_median, data), spike_distance(GLIF, data)
+  4. Compute coverage: fraction of data points within 95% posterior interval
+  5. Generate overlay figures: data (black), HH posterior (blue band), GLIF (red)
+  6. Generate summary: accuracy scatter, parameter correlation heatmap
+  7. Write comparison.org with VERIFIED/INFERRED/SPECULATIVE tags
+  8. Actively seek failure cases: cells where GLIF > HH, poor calibration
+DONE-WHEN: comparison.org complete, all claims tagged, figures generated
+GLOSSARY-PROPOSES:
+  overlay: figure showing data + HH posterior band + GLIF prediction
+  coverage: fraction of observations within posterior predictive interval
+  spike_distance: Victor-Purpura metric or coincidence factor
+#+end_src
+
+
+* Stage 5: The Journalist
+
+** discuss                                                      :discuss:
+
+The journalist agent is the Sculptor archetype adapted for scientific
+communication. It does not produce science; it produces /understanding
+of the science/ for the human principal.
+
+After each stage gate, and periodically during long-running stages
+(inference batch), the journalist reads all artifacts and produces a
+brief: a 1-2 page illustrated summary of what happened, what was
+decided, what changed, and what remains open.
+
+This is the archivist you identified as missing. It solves the
+problem of: "I was away for three days; what did my agents do?"
+
+The journalist's illustrated briefs become the project's memory ---
+more accessible than session logs, more current than manuscripts,
+and /beautiful/ enough that the scientist actually reads them.
+
+** plan                                                         :plan:
+
+- Journalist activates:
+  - After each stage gate (mandatory)
+  - On request ("what happened this week?")
+  - When a parallel batch completes
+- Brief format (=briefs/YYYY-MM-DD-title.org=):
+  - 1-paragraph summary (what changed)
+  - Key decisions and their rationale
+  - Figures: repurposed from agent output + custom summary plots
+  - Open questions for the scientist
+  - Glossary additions proposed by agents during this period
+- The brief is ORG with embedded images (=[[file:../figures/...]]=)
+- Briefs are cumulative: each references the previous
+
+The journalist /reads/ but does not /modify/ any code or data.
+Read-only access. This is a hard constraint — the journalist must
+never be tempted to "fix" something it notices.
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: write-brief
+AGENT: journalist (sculptor archetype, READ-ONLY)
+INPUTS: all artifacts in {root}, previous briefs, glossary.org
+OUTPUTS:
+  - briefs/YYYY-MM-DD-{slug}.org
+ACCESS: READ-ONLY on all project files. No write except to briefs/
+STEPS:
+  1. Read git log since last brief
+  2. Read all new/modified artifacts (data, figures, results, tests)
+  3. Read diagnostics.json for any completed inference runs
+  4. Read comparison.org if updated
+  5. Summarise: what happened, what was decided, what changed
+  6. Select/generate figures: at most 3-4, captioned
+  7. List open questions (extracted from GATE notes, TODO items)
+  8. List glossary additions proposed since last brief
+  9. Write brief to briefs/YYYY-MM-DD-{slug}.org
+DONE-WHEN: brief is written, internally consistent, <=2 pages
+TONE: science journalist writing for a physicist who hasn't looked
+  at the project in a week. Clear, illustrated, no jargon beyond
+  glossary terms. Beautiful.
+#+end_src
+
+
+* Stage 6: Verified Manuscript
+
+** discuss                                                      :discuss:
+
+The final output is a verified manuscript: a document where every
+quantitative claim is backed by an automated test. This is Bravli's
+established convention (29 claims, 293 tests) applied to the
+inference project.
+
+The manuscript is not written by one agent. It emerges from the
+accumulated artifacts:
+- Data descriptions from Stage 1
+- Model specification from Stage 2
+- Posterior analysis from Stage 3
+- Comparison results from Stage 4
+- Narrative thread from the journalist's briefs
+
+The scientist writes the interpretation. The agents provide the
+verified scaffolding.
+
+** plan                                                         :plan:
+
+- Structure: Introduction, Methods (HH model, MCMC, priors),
+  Results (per cell type, comparison), Discussion
+- Every quantitative statement gets a test:
+  - "R-hat < 1.05 for all parameters in all cells" → test
+  - "HH posterior predictive coverage is 0.93 ± 0.04" → test
+  - "HH outperforms GLIF on spike timing in 15/20 cells" → test
+- Figures: drawn from =figures/= (deterministic, reproducible)
+- Format: ORG source → LaTeX via ox-latex or ox-hugo for web
+- Verification: =pytest tests/= reproduces all claims from data
+
+*Gate*: scientist writes interpretation sections. Agents do not
+interpret --- they verify.
+
+** spec                                                         :spec:
+
+#+begin_src org :eval never
+TASK: verified-manuscript
+AGENT: builder (manuscript specialist)
+INPUTS: all artifacts, comparison.org, briefs/, glossary.org
+OUTPUTS:
+  - manuscript/paper.org (ORG source)
+  - manuscript/tests/test_claims.py (one test per quantitative claim)
+  - manuscript/figures/ (symlinks or copies, deterministic)
+STEPS:
+  1. Draft structure: sections from plan above
+  2. For each quantitative claim in comparison.org:
+     - Write assertion test in test_claims.py
+     - Tag claim VERIFIED if test passes
+  3. Collect figures, ensure reproducibility (fixed seeds, pinned data)
+  4. Write Methods section from model spec + inference config
+  5. Write Results section from comparison.org (VERIFIED claims only)
+  6. Leave Discussion section as STUB for human
+  7. Run: pytest manuscript/tests/test_claims.py
+DONE-WHEN: all claims VERIFIED, tests pass, Discussion=STUB for human
+#+end_src
+
+
+* Orchestration: How Agents Coordinate
+
+** The Merge Problem
+
+Stages 1 and 2 run in parallel after Stage 0. They share:
+- =glossary.org= (both propose additions)
+- =pyproject.toml= (data agent adds =allensdk=; model agent adds nothing new)
+- =src/__init__.py= imports
+
+The merge strategy is simple because the shared surface is small:
+- Glossary additions: append-only, no conflicts possible
+- Dependencies: human approves =pyproject.toml= changes at gates
+- Imports: each agent owns its =src/{subpackage}/=
+
+Stage 3 (inference) creates the first real parallel workload:
+N agents fitting N cells. They share =src/inference/= (read-only
+during batch) and write to separate =data/posteriors/{cell_id}/=
+directories. No conflicts by construction.
+
+Stage 4 (comparison) depends on Stage 3 completion. Sequential.
+
+Stage 5 (journalist) runs continuously, read-only. No conflicts.
+
+** The Review Gates
+
+#+begin_example
+Stage 0 ──GATE──▶ Stage 1 ─┐
+                             ├──GATE──▶ Stage 3 ──GATE──▶ Stage 4 ──GATE──▶ Stage 6
+                  Stage 2 ─┘          (pilot)            (full)
+                                        │
+                                        ▼
+                                   Stage 3 (batch, parallel)
+                                        │
+                                        ▼
+                  Stage 5 (journalist, continuous, read-only)
+#+end_example
+
+Each GATE requires human review. The journalist produces a brief
+at each gate to aid review. The scientist reads the brief, examines
+key artifacts, approves or redirects.
+
+** Token Budget and Context Management
+
+Early stages: full context (small project, few files).
+Mid-project: agents receive =glossary.org= + their =spec= section +
+  relevant data paths. The glossary substitutes for full-context reads.
+Late stages: agents receive =glossary.org= + =spec= + =brief= from
+  journalist. The brief is the compressed context.
+
+The journalist's briefs serve double duty: human communication /and/
+agent context compression. A brief is a curated summary that a new
+agent can read instead of the full project history.
+
+
+* What This Tests
+
+This project is not just about Hodgkin-Huxley inference. It is a
+controlled experiment in scientific swarm coordination:
+
+#+begin_table
+| Question                              | How We Test It                  |
+|---------------------------------------+---------------------------------|
+| Can agents share code without conflict?| Stages 1+2 parallel            |
+| Can agents parallelise data processing?| Stage 3 batch                  |
+| Does the Critic find real problems?   | Stage 4 adversarial review      |
+| Does the journalist reduce review cost?| Compare: brief vs raw artifacts|
+| Does the glossary reduce token cost?  | Measure spec verbosity over time|
+| Can we produce a verified manuscript? | Stage 6                        |
+| Do review gates catch errors?         | Track gate rejections           |
+| Is the three-face convention useful?  | Ask the scientist after         |
+#+end_table
+
+The meta-output is not the paper. It is the /orchestration patterns/
+that we bring back to MayaDevGenI Agency and encode as conventions
+for any scientist running a similar workflow.
+
+
+* Appendix: Agent Roster
+
+#+begin_table
+| Agent      | Archetype | Access       | Activates           |
+|------------+-----------+--------------+---------------------|
+| Scaffolder | Builder   | Full write   | Stage 0 only        |
+| Curator    | Observer  | Write: data/ | Stages 1, ongoing   |
+| Modeller   | Builder   | Write: src/model/ | Stage 2         |
+| Fitter     | Builder   | Write: posteriors/ | Stage 3 (×N)  |
+| Critic     | Critic    | Write: results/, compare/ | Stage 4 |
+| Journalist | Sculptor  | READ-ONLY + briefs/ | Continuous    |
+| Scribe     | Builder   | Write: manuscript/ | Stage 6        |
+| Scientist  | Principal | Full authority| All gates           |
+#+end_table
+
+7 agent roles + the human. At peak parallelism (Stage 3 batch):
+7 + N fitters, where N = number of cells being fitted simultaneously.
+With 20 cells and 5 parallel fitters: 12 agents total, of which
+5 are doing the same thing on independent data.
+
+Not 20 identical Polecats. A small company with clear roles.
+
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

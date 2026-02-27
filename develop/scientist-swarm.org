@@ -1,0 +1,514 @@
+#+title: Twenty Agents and a Physicist: What Can We Ship?
+#+author: mu2tau & Claude Opus 4.6
+#+date: <2026-02-27>
+#+startup: overview
+
+#+begin_quote
+"In 3 sessions, one physicist built a neuroscience toolkit (293 tests),
+wrote a verified manuscript, implemented C++ simulation engines."
+--- MāyāLucIA Manifesto, February 2026
+
+"Gas Town can handle super long, fussy tasks (think big puzzle marathons)
+without falling apart."
+--- Steve Yegge, January 2026
+#+end_quote
+
+
+Steve Yegge ships software. He runs 20--30 concurrent Claude Code agents,
+each producing merge requests that a Refinery processes into a production
+codebase. The output is measurable: lines of code, PRs merged, beads
+completed.
+
+What do /we/ ship? And to whom?
+
+This document confronts the question directly. We take the Gas Town
+provocation seriously --- can a lone scientist command 20 agents? --- and
+ask what that would look like refracted through the MayaDevGenI framework,
+applied to the concrete work happening in MāyāLucIA, MāyaPramāṇa, and
+the Sūtra relay. We propose a shipping roadmap that is honest about what
+exists, what is speculative, and what is merely aspiration.
+
+
+* The Audience: The Lone Scientist
+
+Our user is not a startup founder managing a development team. Our user is a single researcher --- possibly in a lab, possibly independent --- who wants to understand natural phenomena with the help of machine intelligence.
+
+This scientist:
+- Has deep domain expertise (they know the physics, the biology, the mathematics)
+- Lacks bandwidth (one person, finite hours, too many threads)
+- Cares about /correctness/ more than /speed/ (a wrong model is worse than no model)
+- Thinks in terms of /understanding/, not /features/
+- Works with code but code is not the product --- the /model/ is
+- Publishes papers, not packages
+
+Gas Town's Overseer is a software manager. Our Principal is a scientist. The distance between them is not just stylistic; it determines every architectural choice downstream.
+
+* Can Twenty Agents Help a Scientist?
+
+The honest answer is: not the way Gas Town uses them, but yes, in a
+fundamentally different configuration.
+
+** The Gas Town Configuration (why it fails for science)
+
+In Gas Town, 20 agents all do the same thing: implement features, fix bugs, write code. They are interchangeable Polecats dispatched by a Mayor. Differentiation is positional (which task is on whose hook), not cognitive.
+
+For science, this configuration fails on three counts:
+
+1. *Scientific work is not decomposable into independent tasks.*
+   A Gas Town Mayor can break "add dark mode" into 20 independent file changes. But "understand how the mushroom body integrates sensory input" is not a set of parallelisable subtasks --- it is a /dialogue/ between observation, modelling, and critique. The subtasks have complex dependencies that only emerge during the work.
+
+2. *The merge queue is the wrong quality mechanism.*
+   The Refinery checks: "Do tests pass after rebase?" For code, this suffices. For science: a model can pass all tests and still be wrong. The Bloch equation simulation can be numerically correct while the physical interpretation is mistaken. Tests verify /implementation/; they do not verify /understanding/.
+
+3. *The scientist cannot review 20 concurrent outputs.*
+   Gas Town's acknowledged bottleneck is human review. For a startup with a team of reviewers, this is a staffing problem. For a lone scientist, it is a physical impossibility. Twenty simultaneous code branches are not twenty simultaneous insights.
+
+** The Workshop Configuration (what would work)
+
+Instead of 20 identical workers, imagine 20 agents with /distinct
+cognitive roles/, most of them inactive at any moment, activated
+by the work's own rhythm:
+
+#+begin_example
+┌─────────────────────────────────────────────────────────┐
+│                   THE SCIENTIST'S WORKSHOP               │
+│                                                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+│  │ Observer  │  │ Theorist │  │ Builder  │              │
+│  │ (active)  │──│ (active) │──│ (idle)   │              │
+│  └──────────┘  └──────────┘  └──────────┘              │
+│       │              │              │                    │
+│       │         ┌────┴────┐        │                    │
+│       │         │  Guide  │        │                    │
+│       │         │ (active)│        │                    │
+│       │         └────┬────┘        │                    │
+│       │              │              │                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+│  │ Sculptor │  │  Critic  │  │ Faculty  │              │
+│  │ (idle)   │  │ (idle)   │  │ (5 idle) │              │
+│  └──────────┘  └──────────┘  └──────────┘              │
+│                                                          │
+│  ┌────────────────────────────────────────────────┐     │
+│  │ RELAY (Sūtra): messages between sessions       │     │
+│  │ ARTIFACTS: org docs, code, data, session logs  │     │
+│  │ REVIEW GATES: human approves at decision points│     │
+│  └────────────────────────────────────────────────┘     │
+│                                                          │
+│  Scientist: observes, directs, judges, decides          │
+└─────────────────────────────────────────────────────────┘
+#+end_example
+
+In this configuration:
+- Most agents are /dormant/ most of the time
+- Activation is /demand-driven/ by the work's phase (measuring? invoke
+  Observer. Modelling? invoke Theorist. Evaluating? invoke Critic.)
+- The Guide maintains coherence across activations
+- The Phantom Faculty (5 voices) activate for /pedagogy/ --- when the
+  scientist needs to understand a concept at deeper levels
+- The Sūtra relay carries context across sessions and machines
+- The scientist is not an Overseer receiving notifications; they are
+  the /principal/ directing the inquiry
+
+This is not 20 concurrent workers. It is a /repertory company/ of
+specialised intelligences, available on call, each bringing a different
+cognitive mode to bear when the work requires it.
+
+
+* What We Have Built (Inventory)
+
+Let us be precise about what exists, what works, and what is aspiration.
+
+** Shipping Today (battle-tested, deployed)
+
+#+begin_table
+| Artifact                    | Status     | Where                            |
+|-----------------------------+------------+----------------------------------|
+| MāyāLucIA website          | Live       | mayalucia.dev (Hetzner VPS)      |
+| MayaDevGenI website         | Live       | devgeni.mayalucia.dev            |
+| Project Constellation       | Live       | Home page of mayalucia.dev       |
+| Phantom Faculty Constellation| Live      | Writing section of mayalucia.dev |
+| Bravli test suite           | Working    | 293 tests, domains/bravli/       |
+| MāyaPramāṇa Lesson 00      | Working    | Bloch equations, 3 languages     |
+| 5 Phantom Faculty agents    | Working    | mayapramana/agents/phantom-faculty/|
+| MāyaLoom cadenza protocol   | Working    | Validated 2026-02-20             |
+| Sūtra v1 relay              | Working    | github.com/mayalucia/sutra       |
+| Agent definitions (gptel)   | Working    | agency/agents/ (4 agents)        |
+| Collaborative-intelligence  | Working    | Deployed in production sessions  |
+| Verified manuscripts (3)    | Written    | Bravli papers section            |
+| Convention inventory        | Written    | develop/conventions/inventory.org|
+| The Fourth (turiya essay)   | Written    | develop/conventions/turiya.org   |
+#+end_table
+
+** Working but Incomplete
+
+#+begin_table
+| Artifact                  | Status    | Gap                             |
+|---------------------------+-----------+---------------------------------|
+| MāyaPortal (C++23/WebGPU) | v2 branch | 13 lessons planned, early impl. |
+| MāyaJīva (bug simulation) | Working   | Godot integration incomplete    |
+| MāyaPramāṇa curriculum    | Lesson 00 | Lessons 01-08 not started       |
+| Agency role archetypes    | Specified | Not wired as gptel-agent defs   |
+| Handoff protocol          | Specified | Not tested in multi-agent flow  |
+| Machine descriptors       | v0 only   | Need update for Sūtra v1        |
+| Parbati (Himalayan DT)    | Dormant   | Awaiting MāyaPortal maturation  |
+#+end_table
+
+** Does Not Yet Exist
+
+#+begin_table
+| Artifact                    | Importance | Complexity                       |
+|-----------------------------+------------+----------------------------------|
+| Guide agent (orchestrator)  | Critical   | Needs routing + gate logic       |
+| Multi-agent handoff chain   | High       | Requires tested handoff protocol |
+| Durable execution / checkpt | High       | Needs checkpoint + resume format |
+| Parallel agent coordination | Medium     | Needs lightweight merge strategy |
+| Bloch sphere interactive    | Medium     | WebGL or MāyaPortal integration  |
+| Full quantum sensor ctrl    | Long-term  | Lessons 01-08 + hardware bridge  |
+#+end_table
+
+
+* What Yegge Ships vs. What We Ship
+
+** Yegge's Deliverables
+
+Gas Town produces:
+- Merge requests on git repositories
+- Beads state (issue tracking in Dolt)
+- Code (the actual software artifacts)
+- The orchestrator itself (225k lines of Go)
+
+The packaging is: =git clone && gt up=. The value proposition: "Give me
+a task description and I give you merged PRs."
+
+** Our Deliverables (Current and Planned)
+
+We produce things that are not PRs:
+
+#+begin_table
+| Category    | Deliverable                | Packaging                 |
+|-------------+----------------------------+---------------------------|
+| Conventions | Sūtra protocol             | Git repo + CLAUDE.md      |
+| Conventions | Verified manuscript method | ORG template + test suite |
+| Conventions | MāyāLoom cadenza protocol  | ORG annotations           |
+| Conventions | Phantom Faculty pedagogy   | gptel-agent MD files      |
+| Conventions | Convention-Driven Dev      | CLAUDE.md + .sutra/       |
+| Software    | Chalkboard renderer        | Python package            |
+| Software    | MāyaPortal (rendering)     | C++23 / SDL3 / WebGPU     |
+| Software    | MāyaJīva (simulation)      | C++20 / Godot             |
+| Software    | Bravli toolkit             | Python, 293 tests         |
+| Science     | Quantum compass paper      | Verified manuscript       |
+| Science     | Connectome digital twin    | Pipeline + tests          |
+| Science     | Bloch equations lesson     | 3-language literate code  |
+| Viz/Web     | Project constellation      | CLJS/Reagent/d3-force     |
+| Viz/Web     | Phantom Faculty browser    | CLJS/Reagent/d3-force     |
+| Writing     | The Thread Walkers         | Parable (published)       |
+| Writing     | The Fourth (turiya)        | Essay (internal)          |
+| Framework   | MayaDevGenI Agency         | ORG specification         |
+| Framework   | Tutorial (9 chapters)      | Website content           |
+#+end_table
+
+The packaging problem is real: conventions are harder to ship than software. You cannot =pip install= a convention. But conventions /scale better than tooling/ (the inventory document's central argument): a convention requires a plain text file, an agent that can read, and git. No servers, no APIs, no accounts.
+
+** The Shipping Gap
+
+Yegge can say: "Here is Gas Town. Install it. Run 20 agents." His artifact is a tool.
+
+We cannot yet say the equivalent. Our closest: "Here is the MayaDevGenI tutorial (9 chapters). Here are the agent definitions. Here is the Sūtra protocol. Here is the MāyāLoom convention. Clone these repos and you have a framework for human-machine scientific collaboration."
+
+This is not a tool. It is a /methodology/. The gap between a methodology and a tool is the gap between a recipe and a kitchen appliance. Both produce meals; only one requires the cook to understand what they are doing.
+
+For our audience --- scientists who /want/ to understand --- the methodology may be more valuable than the tool. But it demands more from the user, and it is harder to evaluate before adopting.
+
+
+* What We Can Ship, and When
+
+** Tier 1: Ready Now (needs packaging, not building)
+
+*** The Sūtra Protocol: "Git as a Message Bus"
+
+The strongest standalone publication candidate. Material exists:
+- Sūtra v0 protocol with literature survey (comparing Google A2A, MCP, mcp-agent-mail, AGENTS.md, Claude Squad, CrewAI, LangGraph, Google ADK, Composio, Augment Code Intent)
+- The v0 → v1 design evolution narrative (failure-driven design)
+- 12+ relay messages as worked examples
+- =git log HEAD..origin/main= as the read protocol
+
+*Packaging*: A standalone git repo with =CLAUDE.md=, a =relay/= directory, and a 5-page protocol document. Any agent that can read a =CLAUDE.md= can participate immediately.
+
+*Audience*: Anyone running AI agents across multiple machines who wants cross-session coordination without infrastructure.
+
+*Publication angle*: "Git as a Message Bus: Convention-Driven Multi-Agent Coordination Without Infrastructure."
+
+*Relationship to Gas Town*: Sūtra solves the same cross-session problem Gas Town solves with Beads/Dolt, but with /zero infrastructure/. Where Gas Town adds layers (Dolt database, MCP server, tmux management), Sūtra removes them. The comparison is itself a publication-worthy argument about convention vs. infrastructure.
+
+*** The Verified Manuscript Convention
+
+Material exists:
+- Three verified manuscripts in Bravli (mushroom body dynamics, executable manuscripts survey, cortical predictive coding)
+- 293 automated tests backing 29 quantitative claims
+- The "clone && pytest" verification standard
+- Inline test badges in self-contained HTML
+
+*Packaging*: A template repository with the ORG structure, test infrastructure, and badge generation tooling.
+
+*Audience*: Computational scientists who want their papers to be mechanically verifiable.
+
+*** The MayaDevGenI Tutorial
+
+Nine chapters on system-prompt engineering, already published at devgeni.mayalucia.dev. Covers: why system prompts matter, anatomy, landscape, craft, failure modes, iteration, scaling, skills, Emacs integration.
+
+*Packaging*: Already shipped. Needs promotion.
+
+** Tier 2: Needs Building (3-6 months)
+
+*** The Guide Agent (Orchestrator)
+
+The critical missing piece for multi-agent workflows. The Guide needs to:
+- Receive tasks from the human
+- Decompose into agent-appropriate subtasks
+- Route to Observer/Theorist/Builder/Sculptor/Critic
+- Manage handoffs between agents
+- Present synthesis to the human at review gates
+
+*Complexity*: This is the /Mayor/ of our system, but with fundamentally different semantics. Gas Town's Mayor dispatches identical workers to independent tasks. Our Guide routes to /specialised cognitive modes/ where the output of one shapes the input of the next.
+
+*What Gas Town teaches*: The Mayor's =gt sling= and =gt mail= patterns
+are relevant. We need a dispatch mechanism and a communication protocol.
+Sūtra's relay is the communication layer. The dispatch mechanism should
+be convention-based (the Guide reads a task specification and decides
+which archetype to invoke) rather than API-based.
+
+*** Durable Execution for Long Scientific Workflows
+
+A quantum sensor controller curriculum (MāyaPramāṇa) spans 8 lessons. A digital twin reconstruction (Bravli) spans weeks of iterative refinement. These exceed single context windows.
+
+We need Gas Town's /checkpointing/ without Gas Town's /infrastructure/. Proposal:
+
+#+begin_src org
+,* Checkpoint: lesson-02-optical-pumping
+,** Status
+Lesson structure drafted. Python implementation complete.
+Haskell spec: 3 of 5 functions implemented.
+C++ code: not started.
+,** Artifacts
+- lessons/02-optical-pumping/concept.org (lines 1-180: complete)
+- python session: pumping rates match Table 2 of Happer 1972
+,** Next
+- Complete Haskell QuickCheck properties for pumping equilibrium
+- Begin C++ header with dimensional types
+,** Open Questions
+- Collision broadening: include in lesson or defer to lesson 03?
+  [Needs human decision]
+,** Conventions Active
+- MāyāLoom: cadenza blocks at `:concept optical-pumping`
+- Cross-language validation: Python generates reference JSON
+#+end_src
+
+This is a checkpoint an arriving agent can parse and resume from. Machine-readable, human-readable, stored in git. No Dolt required.
+
+*** The Phantom Faculty as Shippable Convention
+
+Five agent personas with distinct epistemological stances, used to generate pedagogical content targeted at specific knowledge gaps.
+
+*What exists*: Five =.md= system prompts, the cadenza protocol (6-field expansion specification), and one fully expanded lesson (Bloch sphere geometry in all five voices).
+
+*What's needed*: More worked examples (at least 3-4 more cadenza expansions across different topics), documentation of the convention, and a template repository.
+
+*Publication angle*: "The Phantom Faculty: Teaching Physics Through LLM Personas of Great Physicists."
+
+** Tier 3: Research Direction (6-12 months)
+
+*** The Scientist's Swarm: Selective Parallelism
+
+Not 20 identical workers, but 3-5 agents running /genuinely independent/ workstreams with human-gated integration:
+
+#+begin_example
+Scientist directs:
+  Agent A (Builder): implement Lesson 02, optical pumping
+  Agent B (Observer): curate SRTM elevation data for Parbati
+  Agent C (Critic): review Bravli manuscript claims against new data
+
+These touch different submodules. No merge conflicts.
+The scientist reviews each output independently.
+Integration happens at the conceptual level (human judgment),
+not the code level (automated merge).
+#+end_example
+
+This is Claude Squad's model (tmux panes, git worktrees) applied to scientific work. The innovation is not technical --- it is /architectural/: the agents work on different /cognitive tasks/ in different /domains/, coordinated by the scientist's understanding of how the pieces fit together.
+
+*What Gas Town teaches*: The git worktree pattern is directly
+applicable. Each agent gets a worktree per submodule. The merge strategy
+is trivial because the workstreams are independent.
+
+*What we add*: The workstreams are not interchangeable tasks; they are different /phases/ of a scientific inquiry (observing, building, critiquing), happening to advance in parallel because the scientist has bandwidth for all three and they genuinely do not interfere.
+
+*** Verification Sweeps
+
+Gas Town's "Sweeps" adapted for science: periodic agent-driven audits
+of the entire project state.
+
+#+begin_src org
+,* Verification Sweep: 2026-Q2
+,** Bravli
+- [ ] All 293 tests pass on current main
+- [ ] Manuscript claim-test mappings still valid
+- [ ] New data from FlyWire v3: any invalidations?
+,** MāyaPramāṇa
+- [ ] Lesson 00 Python/Haskell/C++ outputs match
+- [ ] Bloch equation reference JSON up-to-date
+- [ ] New cadenza expansions consistent with `:prereqs`
+,** MāyaPortal
+- [ ] SDL3 API changes since last build
+- [ ] WebGPU spec changes affecting lesson pipeline
+,** Cross-Module
+- [ ] Submodule pointers in mayalucia parent are consistent
+- [ ] Sūtra relay: any unactioned pending messages
+#+end_src
+
+A Critic agent runs this sweep quarterly, reports findings, and the scientist decides what to act on.
+
+*** The Convention Package Manager
+
+If conventions are our unit of shipping, we need a way to /discover, evaluate, and adopt/ them. Not a package manager in the npm sense --- but a curated registry of convention documents that any project can import by copying a =CLAUDE.md= section and a directory structure.
+
+#+begin_example
+mayaconventions/
+  sutra/           → Cross-machine relay protocol
+  verified-ms/     → Verified manuscript convention
+  mayaloom/        → Adaptive prerequisite teaching
+  phantom-faculty/ → Epistemologically-distinct agent personas
+  turiya/          → Human-machine collaboration principles
+#+end_example
+
+Each convention is: a 1-page spec, a worked example, a =CLAUDE.md= snippet, and a directory template. "Clone this repo. Copy the convention you want into your project. Your agents will follow it."
+
+
+* The Twenty-Agent Question, Answered
+
+Can a lone scientist command 20 agents? Yes, but not the way Yegge imagines.
+
+** Gas Town's 20: a production line
+
+#+begin_example
+1 Mayor → 20 identical Polecats → 1 Refinery → main branch
+
+All agents do the same thing (implement features).
+Throughput is the metric.
+Quality is: do tests pass?
+The human reviews merged PRs.
+#+end_example
+
+** Our 20: a repertory company
+
+#+begin_example
+1 Guide (orchestrator)
+1 Observer (data curation)
+1 Theorist (model construction)
+3 Builders (Python / Haskell / C++, one per language)
+1 Sculptor (visualisation, documentation)
+1 Critic (adversarial review)
+5 Phantom Faculty (pedagogical voices)
+2-3 parallel workers (independent submodule tasks)
+1 Relay agent (Sūtra message management)
+1 Sweep agent (periodic verification)
+~ 2 spare capacity for ad hoc tasks
+---
+≈ 18-20 agents total
+#+end_example
+
+Most are dormant at any time. Activation is phase-driven:
+- /Measuring phase/: Observer active, Theorist on standby
+- /Modelling phase/: Theorist active, Builders on standby
+- /Manifesting phase/: Builders active (possibly in parallel, one per language), Sculptor preparing
+- /Evaluating phase/: Critic active, Sweep agent checking
+- /Teaching phase/: Faculty active, expanding cadenzas
+- /Coordination/: Guide always active, Relay processing messages
+
+The scientist does not review 20 concurrent outputs. They direct the inquiry: "We are in the modelling phase. Theorist, propose a model for optical pumping dynamics. Critic, stand by to review."
+
+The twenty agents are a /capacity/, not a /workload/. The scientist uses them like a musician uses the keys of a piano: all 88 are available, but a chord needs only 3-5.
+
+
+* What We Can Learn from Gas Town
+
+** 1. Ship the Orchestrator
+
+Yegge shipped Gas Town. It exists. You can clone it and run it. We have not shipped our Guide agent. Until we do, our multi-agent framework is a specification, not a system.
+
+** 2. Make Conventions Executable
+
+Sūtra is a convention that agents follow by reading a =CLAUDE.md=. But "follow the Sūtra protocol" requires the agent to /interpret/ a text document and decide what to do. Gas Town's =gt sling=, =gt done=, =gt handoff= are /commands/ that agents execute. Commands are more reliable than conventions for mechanical tasks.
+
+The synthesis: conventions for /cognitive/ tasks (how to think, what to prioritise, when to push back). Commands for /mechanical/ tasks (dispatch, checkpoint, merge). We should not be afraid to build tools for the mechanical parts while keeping conventions for the cognitive parts.
+
+** 3. Solve Context Window Exhaustion
+
+Gas Town's =gt handoff= is a real solution to a real problem. Our framework pretends context windows are infinite (or that session logs bridge the gap). They are not. We need a checkpoint-and-resume mechanism, even if it is as simple as a structured ORG section that an arriving agent can parse.
+
+** 4. Invest in Machine Descriptions
+
+Gas Town agents know their capabilities. Our agents discover their environment ad hoc each session. Formalising machine descriptors --- what tools are available, what repos are accessible, what build systems work --- reduces the cost of the "assess" step in every session bootstrap.
+
+** 5. Track What Agents Accomplish
+
+Gas Town's CV chains are excessive (persistent identity risks bias), but the impulse is correct: somewhere, there should be a record of what each session accomplished. Our session logs serve this purpose but are unstructured. A lightweight convention for session summaries (what was done, what was decided, what remains) would strengthen session continuity without the risks of persistent identity.
+
+
+* A Shipping Roadmap
+
+#+begin_table
+| When   | What                             | Type       | Audience              |
+|--------+----------------------------------+------------+-----------------------|
+| Now    | Tutorial (9 chapters)            | Content    | Prompt engineers      |
+| Now    | Gas Town assessment (this doc)   | Analysis   | Framework builders    |
+| Q2 '26 | Sūtra protocol paper             | Convention | Multi-agent builders  |
+| Q2 '26 | Verified manuscript template     | Convention | Comp. scientists      |
+| Q2 '26 | Phantom Faculty examples         | Convention | Educators, physicists |
+| Q3 '26 | Guide agent implementation       | Software   | MāyāLucIA users       |
+| Q3 '26 | Checkpoint-resume convention     | Convention | Long-running projects |
+| Q3 '26 | MāyaPramāṇa Lessons 01-03        | Content    | Quantum sensor labs   |
+| Q4 '26 | Scientist's Swarm (3-5 parallel) | System     | Lone researchers      |
+| Q4 '26 | Convention registry              | Infra      | Community             |
+| 2027   | MāyaPramāṇa full curriculum      | Content    | UQSC education        |
+| 2027   | Verification sweeps              | System     | Project maintenance   |
+#+end_table
+
+
+* Closing: The Factory and the Workshop
+
+Yegge sees the future of coding as industrialisation. More agents, faster execution, automated quality control. Gas Town is the factory floor.
+
+We see the future of /scientific work/ with AI as /deepened partnership/. Not more agents but /better-matched/ agents. Not faster output but /more rigorous understanding/. Not automated quality control but /structural epistemic hygiene/.
+
+Both visions are valid for their domains. Gas Town is right that coding can be industrialised --- much of it is routine, parallelisable, and verifiable by automated tests. The workshop model is right that science cannot be --- understanding is sequential, judgment-dependent, and verifiable only by the prepared mind.
+
+The lone scientist does not need a factory. They need a workshop with excellent tools, knowledgeable colleagues (even if some are machine intelligences), and the /freedom to think slowly/.
+
+Gas Town makes agents fast. We aim to make the scientist /deeper/.
+
+#+begin_quote
+/The question is not "how do we build a platform?" It is "what is the
+minimal set of conventions that makes multi-agent coordination emerge
+from tools everyone already has?" Our answer: a CLAUDE.md, a .sutra/
+directory, and git./
+--- Convention Inventory, MāyāLucIA, 2026
+#+end_quote
+
+
+* References
+
+- Yegge, Steve. "Welcome to Gas Town." Medium, January 2026.
+- Yegge, Steve. "Gas Town Emergency User Manual." Medium.
+- Yegge, Steve. "The Future of Coding Agents." Medium.
+- MāyāLucIA. =manifesto.org=. February 2026.
+- MāyāLucIA. =develop/conventions/inventory.org=. February 2026.
+- MāyāLucIA. =develop/conventions/turiya.org=. February 2026.
+- Sūtra Protocol. =.sutra/protocol.org= (v0) and =github.com/mayalucia/sutra= (v1).
+- MayaDevGenI. =agency/agency.org=. 2025--2026.
+- MāyaPramāṇa. =architecture.org=, =conventions.org=, =curriculum.org=.
+- Ray, Brian. "From Conductors to Orchestrators." O'Reilly, March 2025.
+- Brinker, Andrew Lilley. "Gas Town Decoded."
+
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

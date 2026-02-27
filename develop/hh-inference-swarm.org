@@ -51,22 +51,13 @@ The decomposition is natural and non-trivial:
 └─────────────────────────────────────────────────────────────────┘
 #+end_example
 
-The agents share code and data structures. The inference engine imports
-the model builder's simulator. The comparator reads outputs from both
-the inference engine and the Allen GLIF fits. The journalist reads
-everything. This is where merge conflicts /actually happen/ ---
-unlike MāyāLucIA's submodules, which are independent.
+The agents share code and data structures. The inference engine imports the model builder's simulator. The comparator reads outputs from both the inference engine and the Allen GLIF fits. The journalist reads everything. This is where merge conflicts /actually happen/ --- unlike MāyāLucIA's submodules, which are independent.
 
 ** Why From Scratch
 
-We could extend Bravli's existing toolkit. We choose not to, because
-the purpose is to /feel/ the orchestration problem. Starting from
-=git init= with multiple agents means every coordination failure is
-ours to discover, not inherited from prior architecture.
+We could extend Bravli's existing toolkit. We choose not to, because the purpose is to /feel/ the orchestration problem. Starting from =git init= with multiple agents means every coordination failure is ours to discover, not inherited from prior architecture.
 
-The work will live in =mayalucia/domains/bravli/= as a new subtree
-(=inference/= or similar), but the conventions, agent definitions, and
-orchestration patterns are designed here in mayadevgeni and tested there.
+The work will live in =mayalucia/domains/bravli/= as a new subtree (=inference/= or similar), but the conventions, agent definitions, and orchestration patterns are designed here in mayadevgeni and tested there.
 
 
 * The Three-Faced Document Convention
@@ -74,21 +65,13 @@ orchestration patterns are designed here in mayadevgeni and tested there.
 Every stage of this plan has three faces:
 
 ** =discuss= (Human Reader)
-The /story/ of this stage. Why we are doing it. What the scientist
-should understand. Written in prose, with analogies and motivation.
-A human can read only the =discuss= sections and understand the
-entire project arc.
+The /story/ of this stage. Why we are doing it. What the scientist should understand. Written in prose, with analogies and motivation. A human can read only the =discuss= sections and understand the entire project arc.
 
 ** =plan= (Authoritative Intent)
-The /decisions/ for this stage. What will be built, in what order,
-with what dependencies. When =plan= and =spec= disagree, =plan= is
-authoritative. Written for a human who needs to review and approve.
+The /decisions/ for this stage. What will be built, in what order, with what dependencies. When =plan= and =spec= disagree, =plan= is authoritative. Written for a human who needs to review and approve.
 
 ** =spec= (Machine Reader)
-The /extractable instructions/ for an agent. Self-contained enough
-that an agent receiving only this section plus a reference to the
-full plan can execute. Uses a *domain shorthand* that evolves over
-the project's life (see §Domain Language below).
+The /extractable instructions/ for an agent. Self-contained enough that an agent receiving only this section plus a reference to the full plan can execute. Uses a *domain shorthand* that evolves over the project's life (see §Domain Language below).
 
 The ORG structure uses tagged headings:
 
@@ -102,9 +85,7 @@ Decisions and dependencies.
 Agent-executable instructions.
 #+end_src
 
-An agent can be given a filtered view: =org-match "+spec"= extracts
-all spec sections. A human reads linearly. The Guide agent reads
-=plan= to route, =spec= to dispatch.
+An agent can be given a filtered view: =org-match "+spec"= extracts all spec sections. A human reads linearly. The Guide agent reads =plan= to route, =spec= to dispatch.
 
 
 * The Self-Organising Domain Language
@@ -132,8 +113,7 @@ tacitly. We build it as an explicit artifact.
 
 ** plan                                                         :plan:
 
-The domain language is a living glossary maintained as an ORG file
-(=glossary.org=) at the project root. It contains:
+The domain language is a living glossary maintained as an ORG file (=glossary.org=) at the project root. It contains:
 
 1. *Terms*: short names for recurring concepts
 2. *Paths*: canonical file locations
@@ -141,17 +121,9 @@ The domain language is a living glossary maintained as an ORG file
 4. *Conventions*: naming, formatting, testing patterns
 5. *Shorthands*: compressed references for agent specs
 
-The glossary is /append-mostly/: new terms are added as the project
-grows. Existing terms are updated only at review gates. Agents are
-instructed to use glossary terms in handoffs and specs.
+The glossary is /append-mostly/: new terms are added as the project grows. Existing terms are updated only at review gates. Agents are instructed to use glossary terms in handoffs and specs.
 
-*Token budget reduction*: early specs might say "run the
-Hodgkin-Huxley simulator defined in =src/model/hh.py=, function
-=simulate_hh(params: HHParams, protocol: StimProtocol) -> VTrace=,
-with parameters drawn from the posterior samples in
-=data/posteriors/{cell_id}/chains.npz=". A mature spec says:
-"=HH.simulate= on =posterior/{cell_id}=". The glossary resolves
-the rest.
+*Token budget reduction*: early specs might say "run the Hodgkin-Huxley simulator defined in =src/model/hh.py=, function =simulate_hh(params: HHParams, protocol: StimProtocol) -> VTrace=, with parameters drawn from the posterior samples in =data/posteriors/{cell_id}/chains.npz=". A mature spec says: "=HH.simulate= on =posterior/{cell_id}=". The glossary resolves the rest.
 
 ** spec                                                         :spec:
 
@@ -197,14 +169,9 @@ CONVENTIONS:
 
 ** discuss                                                      :discuss:
 
-Before any science, the project needs a skeleton: directory structure,
-dependencies, CI, and the glossary. This is mechanical work. One agent
-can do it in a single session.
+Before any science, the project needs a skeleton: directory structure, dependencies, CI, and the glossary. This is mechanical work. One agent can do it in a single session.
 
-The skeleton must be minimal --- just enough structure that subsequent
-agents can orient themselves. Overdesigning the skeleton is the classic
-framework trap. We want: a =pyproject.toml=, a =src/= tree, a =tests/=
-tree, a =data/= tree, a =CLAUDE.md=, and the glossary.
+The skeleton must be minimal --- just enough structure that subsequent agents can orient themselves. Overdesigning the skeleton is the classic framework trap. We want: a =pyproject.toml=, a =src/= tree, a =tests/= tree, a =data/= tree, a =CLAUDE.md=, and the glossary.
 
 ** plan                                                         :plan:
 

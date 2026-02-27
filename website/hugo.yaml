@@ -1,4 +1,4 @@
-baseURL: https://mayadevgeni.github.io/
+baseURL: https://devgeni.mayalucia.dev/
 languageCode: en-us
 title: MayaDevGenI
 theme: PaperMod
@@ -159,7 +159,7 @@ privacy:
   vimeo:
     disabled: false
     simple: true
-  twitter:
+  x:
     disabled: false
     enableDNT: true
     simple: true

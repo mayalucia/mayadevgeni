@@ -152,7 +152,7 @@ Role tags (mutually exclusive, @-prefixed):
 
 Name tags follow the role tag to identify the speaker:
   :@user:alice:      — user named alice
-  :@assistant:claude: — assistant named claude
+  :@assistant:<<name>>: — assistant with its name
 
 Structural rules:
 - Conversation turns live at a fixed heading depth (the "turn level")
@@ -168,7 +168,7 @@ Example:
 ,* Context and framing                            :@user:alice:
 Here is some background...
 
-,* Analysis                                       :@assistant:claude:
+,* Analysis                                       :@assistant:<<name>>:
 ,** Temporal patterns
 ...
 ,** Anomalies

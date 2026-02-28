@@ -1,0 +1,670 @@
+#+title: Epistemic Dependencies: What Scientific Agent Swarms Need That Factories Don't
+#+author: mu2tau & Claude Opus 4.6
+#+date: <2026-02-28>
+#+startup: overview
+
+#+begin_quote
+"Gas Town is an industrialized coding factory manned by superintelligent
+chimpanzees, and when they feel like it, they can wreck your shit instantly."
+--- Steve Yegge, /Welcome to Gas Town/, January 2026
+
+"Distinguish clearly between what you know, what you infer, and what
+you speculate."
+--- MayaDevGenI, /collaborative-intelligence.md/
+#+end_quote
+
+
+* The Problem
+
+Agent orchestrators are designed for code production. Gas Town
+(Yegge, 2026) coordinates 20--30 concurrent Claude Code instances on
+a single codebase. CrewAI, LangGraph, and Google ADK provide
+frameworks for multi-agent task execution. All of them track the same
+kind of dependency: /operational/ --- task A must finish before task B
+starts.
+
+This paper argues that scientific agent swarms need a fundamentally
+different dependency model. The difference is not one of degree
+(more dependency types, finer granularity) but of /kind/. Scientific
+work produces claims, not just code. Claims rest on assumptions.
+Assumptions can be wrong. When an assumption fails, everything
+downstream is not merely /blocked/ --- it is /invalidated/.
+
+No existing orchestrator tracks this.
+
+Consider a concrete scenario: a swarm of agents performs Bayesian
+inference on biophysical neuron models. The model builder assumes
+single-compartment neurons. The inference engine runs MCMC and
+produces beautiful posteriors. All tests pass. The Critic agent later
+discovers evidence of dendritic filtering in the voltage traces. The
+posteriors are not inaccurate --- they are /meaningless/. They are
+posteriors of the wrong model.
+
+In Gas Town's bead system, every task in this chain would be marked
+DONE. The tests passed. The merge succeeded. The beads are green.
+The science is broken.
+
+This is not a contrived example. It is the /normal/ failure mode of
+computational science: not bugs, but wrong assumptions propagating
+silently through a pipeline of correct code.
+
+We propose lightweight mechanisms for tracking epistemic dependencies
+--- what assumes what, how certain it is, and what breaks if an
+assumption falls --- and illustrate them using MayaDevGenZ's first
+engagement: Hodgkin-Huxley parameter inference from the Allen Cell
+Types Database.
+
+
+* What Industrial Orchestrators Get Right
+
+Intellectual honesty requires acknowledging where industrial
+orchestrators have solved problems we have not. Gas Town, as the
+most ambitious system in the current landscape, deserves a
+steel-man treatment.
+
+** Beads and the MEOW Stack
+
+Gas Town's /Molecular Expression of Work/ (MEOW) is a six-level
+abstraction hierarchy:
+
+#+begin_example
+Level 6: Molecules      --- live, instantiated workflow graphs (Turing-complete)
+Level 5: Formulas       --- TOML source for workflow templates
+Level 4: Protomolecules --- workflow templates (graphs of beads with edges)
+Level 3: Epics          --- hierarchical bead collections (parallel-by-default)
+Level 2: Beads          --- atomic, persistent work units (~81 fields each)
+Level 1: Wisps          --- ephemeral beads, destroyed after execution
+#+end_example
+
+Each bead has a content-addressable hash ID, status, priority,
+timestamps, assignee, and 19 dependency types forming a DAG. The
+dependency types divide into workflow-blocking (=blocks=,
+=parent-child=, =conditional-blocks=, =waits-for=) and associative
+(=relates-to=, =duplicates=, =supersedes=).
+
+This is genuine engineering. The six-level hierarchy provides clean
+abstraction boundaries. The 19 dependency types capture nuances of
+operational relationships that simpler systems flatten into
+"depends-on." The backing store (Dolt, a Git-for-data database)
+provides durability and versioning.
+
+** Durable Execution
+
+When an agent's context window fills mid-task, Gas Town recovers.
+Molecules checkpoint to Dolt; the next session reads the checkpoint
+and resumes. The =gt handoff= command compresses context and
+restarts tmux sessions. This is Temporal's workflow-history pattern
+achieved via database state.
+
+Most frameworks --- including ours --- have no equivalent. Session
+continuity relies on "begin by reading relevant prior artifacts"
+and maintaining session logs. This works for human-paced
+collaboration but fails for any task that exceeds a single context
+window.
+
+** The Refinery
+
+When 20+ agents produce concurrent branches, you need a merge
+strategy. Gas Town's Refinery processes merge requests /sequentially/:
+pick oldest pending MR, rebase onto current =main=, run tests, merge
+or retry. This serialisation is the price of parallelism, and it is
+a clean price.
+
+** Desire Paths
+
+Yegge's most interesting design methodology: when an agent
+hallucinate a command that does not exist, Yegge builds the command.
+The agent's hallucination becomes the API specification. This
+produces tools that agents already know how to use --- a genuinely
+agent-centric design insight with no analog in convention-driven
+frameworks.
+
+
+* The Gap: Three Kinds of Dependency
+
+We illustrate using MayaDevGenZ's first engagement: Hodgkin-Huxley
+parameter inference from the Allen Cell Types Database. The pipeline
+has six stages and seven agents:
+
+#+begin_example
+Stage 0: Scaffold  --- project skeleton, glossary, CLAUDE.md
+Stage 1: Curate    --- fetch and validate Allen electrophysiology data
+Stage 2: Model     --- implement HH simulator and likelihood function
+Stage 3: Infer     --- Bayesian parameter inference via MCMC
+Stage 4: Compare   --- adversarial comparison with Allen GLIF models
+Stage 5: Report    --- journalist briefs at each gate
+Stage 6: Publish   --- verified manuscript with tested claims
+#+end_example
+
+Seven agents: Scaffolder, Curator, Modeller, Fitter, Critic,
+Journalist, Scribe --- plus the scientist as principal.
+
+This pipeline has all three kinds of dependency. Only the first is
+tracked by any existing orchestrator.
+
+** Operational Dependencies
+
+What must finish before what can start:
+
+#+begin_example
+Stage 0 --------> Stage 1 ----+
+    \                          \
+     +-------> Stage 2 --------+---> Stage 3 (pilot)
+                                         |
+                                      [GATE]
+                                         |
+                                  Stage 3 (batch, parallel)
+                                         |
+                                      [GATE]
+                                         |
+                                    Stage 4 ---------> Stage 6
+                                         |
+                                  Stage 5 (continuous, read-only)
+#+end_example
+
+Gates are synchronisation points where the scientist reviews before
+downstream work begins. This is a straightforward DAG. Any task
+runner --- beads, Airflow, a Makefile --- can express it.
+
+** Epistemic Dependencies
+
+What /assumes/ what. These are invisible to operational dependency
+tracking and are the central concern of this paper.
+
+#+begin_table
+| Upstream Decision            | Stage | Downstream Impact               | What Breaks                         |
+|------------------------------+-------+---------------------------------+-------------------------------------|
+| Single-compartment neurons   |     2 | All posteriors (Stage 3)        | Posteriors are of the /wrong model/ |
+| Channel set {Na, K, leak,    |     2 | Priors (Stage 3),               | Systematic bias in inferred         |
+| slow-K, Ca-K}                |       | comparison (Stage 4)            | conductances; apples-to-oranges     |
+| Gaussian observation noise   |     2 | Likelihood (Stage 3),           | Coverage claims unfounded           |
+|                              |       | coverage calibration (Stage 4)  |                                     |
+| Cell selection: >=10 APs,    |     1 | Generality claims (Stage 6)     | "Mouse cortical neurons" is really  |
+| long-square protocol         |       |                                 | "neurons that spike a lot"          |
+| Log-normal prior on          |     3 | Posterior shape,                | Informative prior masks that data   |
+| conductances                 |       | comparison (Stage 4)            | does not constrain the parameter    |
+| RK4 with dt=0.025ms         |     2 | Chain accuracy (Stage 3)        | MCMC chases numerical artifacts     |
+|                              |       |                                 | near threshold                      |
+#+end_table
+
+The critical property: an epistemic dependency does not /block/
+downstream work. It /invalidates/ it. The MCMC runs. The chains
+converge. R-hat < 1.05. Every diagnostic is green. But the posteriors
+are posteriors of a model that does not describe the neuron, because
+the single-compartment assumption was wrong.
+
+An operational dependency says: "wait." An epistemic dependency says:
+"if this turns out to be wrong, everything downstream is
+contaminated."
+
+Gas Town's 19 dependency types include =blocks=, =waits-for=,
+=conditional-blocks=. None of them express: "this task's /validity/
+depends on an assumption made in that task." The bead can be DONE.
+The science can be broken. The system cannot distinguish the two
+states.
+
+** Data-Flow Dependencies
+
+Which artifacts flow between stages, with what format contracts:
+
+#+begin_table
+| Producer  | Artifact                        | Consumer(s)            | Contract                                         |
+|-----------+---------------------------------+------------------------+--------------------------------------------------|
+| Curator   | =data/processed/{cell_id}/=     | Fitter, Critic, Scribe | shape, units, required fields in =features.json= |
+| Modeller  | =HH.simulate=                  | Fitter (100k+ calls)   | =(HHParams, StimProtocol) -> VTrace=, frozen     |
+| Modeller  | =HH.log_likelihood=            | Fitter                 | pure function, deterministic given params        |
+| Fitter    | =posteriors/{cell_id}/chains.npz= | Critic, Journalist, Scribe | ={samples, param_names}= array                |
+| Critic    | =results/comparison.org=        | Scribe, Journalist     | VERIFIED/INFERRED/SPECULATIVE tags per claim     |
+#+end_table
+
+Data-flow dependencies sit between operational and epistemic.
+The self-organizing glossary (see §Proposal below) already captures
+/interface/ contracts --- function signatures, file formats, naming
+conventions. What it does not capture: /assumption/ contracts. The
+Fitter knows that =HH.simulate= takes =HHParams= and returns
+=VTrace=. It does not know that =HH.simulate= assumes a
+single-compartment model, and that this assumption has specific
+conditions under which it fails.
+
+
+* The Proposal: Lightweight Epistemic Dependency Tracking
+
+We propose three mechanisms that compose to provide epistemic
+dependency tracking without the infrastructure overhead of
+industrial orchestrators. All three use plain text in git. No
+databases, no MCP servers, no custom tooling.
+
+** The Assumption Ledger
+
+The core proposal. A structured section in the project's glossary
+that makes assumptions explicit, pre-registers their invalidation
+conditions, and tracks their status.
+
+#+begin_src yaml :eval never
+# glossary.org — ASSUMPTIONS section
+# Updated by: agents propose, human approves at review gates
+
+ASSUMPTIONS:
+  single-compartment:
+    made-by: Modeller (Stage 2)
+    scope: "neuron is a single isopotential compartment"
+    justification: "standard for somatic current injection protocols"
+    invalidated-by: "evidence of dendritic filtering or backpropagating
+      APs in voltage traces; systematic misfit in morphologically
+      complex cell types"
+    affects: [Stage 3 posteriors, Stage 4 comparison, Stage 6 claims]
+    status: ACTIVE
+
+  gaussian-noise:
+    made-by: Modeller (Stage 2)
+    scope: "observation noise is iid Gaussian with inferred variance"
+    justification: "conventional; enables analytic likelihood"
+    invalidated-by: "residual analysis showing heteroskedasticity
+      or heavy tails, especially near spike peaks"
+    affects: [Stage 3 likelihood, Stage 4 coverage calibration]
+    status: ACTIVE
+
+  channel-set:
+    made-by: Modeller (Stage 2)
+    scope: "{Na, K, leak, slow-K, Ca-K} channels are sufficient"
+    justification: "covers AP generation, adaptation, and AHP"
+    invalidated-by: "systematic misfit in specific cell types
+      suggesting missing current (e.g., persistent Na, HCN)"
+    affects: [Stage 3 priors, Stage 4 comparison]
+    status: ACTIVE
+
+  cell-selection:
+    made-by: Curator (Stage 1)
+    scope: ">=10 APs under long-square protocol, GLIF available"
+    justification: "sufficient spikes for inference; GLIF needed
+      for comparison"
+    invalidated-by: "discovery that selection excludes scientifically
+      important cell types (e.g., late-spiking, adapting)"
+    affects: [Stage 4 generality, Stage 6 scope of claims]
+    status: ACTIVE
+
+  log-normal-priors:
+    made-by: Fitter (Stage 3)
+    scope: "log-normal priors on all conductance parameters"
+    justification: "conductances are positive, span orders of
+      magnitude; log-normal is weakly informative on log scale"
+    invalidated-by: "prior predictive check showing prior dominates
+      posterior for specific parameters; sensitivity analysis"
+    affects: [Stage 3 posterior shape, Stage 4 comparison]
+    status: ACTIVE
+
+  integrator-accuracy:
+    made-by: Modeller (Stage 2)
+    scope: "RK4 with dt=0.025ms is numerically sufficient"
+    justification: "convergence test: dt=0.025 vs dt=0.001 matches
+      to <0.1mV throughout trace"
+    invalidated-by: "convergence test failure for specific parameter
+      regimes (e.g., near bifurcation, fast channel kinetics)"
+    affects: [Stage 3 chain accuracy]
+    status: ACTIVE
+#+end_src
+
+Each assumption has five fields:
+
+- *made-by*: which agent and stage introduced this assumption
+- *scope*: what exactly is being assumed, in one sentence
+- *invalidated-by*: what evidence would falsify it, /pre-registered/
+  before downstream work begins (Popperian)
+- *affects*: the invalidation chain --- downstream stages that break
+  if this assumption fails
+- *status*: =ACTIVE= / =QUESTIONED= / =INVALIDATED=
+
+The =invalidated-by= field is the key innovation. It forces the
+agent making an assumption to think about failure /before/ downstream
+work depends on it. This is the scientific method applied to
+pipeline construction: pre-register your falsification criteria.
+
+The Critic agent (Stage 4) then has a concrete job beyond "compare
+HH to GLIF." It /tests the assumption ledger/. Residual analysis
+that reveals heteroskedastic noise does not just affect a metric ---
+it flips =gaussian-noise= from =ACTIVE= to =QUESTIONED=. The
+=affects= field immediately tells the scientist which claims in the
+manuscript are now suspect.
+
+Status transitions:
+
+#+begin_example
+ACTIVE -------> QUESTIONED     (evidence found, not yet decisive)
+QUESTIONED ---> INVALIDATED    (evidence is decisive)
+QUESTIONED ---> ACTIVE         (evidence explained away at review gate)
+ACTIVE -------> INVALIDATED    (decisive evidence found directly)
+#+end_example
+
+Only the scientist can transition =QUESTIONED= → =ACTIVE= (accepting
+the explanation). Agents can transition =ACTIVE= → =QUESTIONED= and
+=QUESTIONED= → =INVALIDATED=. This asymmetry ensures that assumptions
+are easy to challenge and hard to reinstate --- the right default for
+science.
+
+** The Three-Faced Convention
+
+Every stage of a scientific pipeline has three audiences: the human
+who needs to understand /why/, the human who needs to approve /what/,
+and the agent that needs to execute /how/. The three-faced convention
+gives each audience its own view of the same content:
+
+#+begin_src org :eval never
+,* Stage N: Title
+,** discuss                                                    :discuss:
+Why we are doing this. The story. Prose for a scientist who reads
+only the discuss sections and understands the entire project arc.
+
+,** plan                                                       :plan:
+Decisions and dependencies. What will be built, in what order, with
+what constraints. Authoritative: when plan and spec disagree, plan wins.
+
+,** spec                                                       :spec:
+Extractable instructions for an agent. Self-contained: an agent
+receiving only this section plus the glossary can execute.
+#+end_src
+
+For dependency tracking, the three-faced convention provides:
+
+1. *Traceability*: dependencies are declared in =plan= sections
+   and encoded in =spec= sections. =git diff= on the plan shows
+   what dependency changed and when.
+
+2. *Auditability*: the =discuss= section explains /why/ a dependency
+   exists, not just /that/ it exists. A reviewer can assess whether
+   the dependency is justified.
+
+3. *Machine-readability*: an agent can be given a filtered view
+   (=org-match "+spec"=) containing only its executable instructions
+   and the assumptions it inherits.
+
+Dependencies live in the /same document/ as task specifications, not
+in a separate database. This means:
+- They version with the code (git history)
+- They are reviewed at the same gates
+- They cannot drift from the implementation they describe
+
+** The Self-Organising Glossary
+
+The glossary is a living document that evolves with the project. It
+begins with five sections --- TERMS, PATHS, INTERFACES, CONVENTIONS,
+ASSUMPTIONS --- and grows as agents propose additions at review gates.
+
+#+begin_src yaml :eval never
+TERMS:
+  HH: Hodgkin-Huxley multi-compartment neuron model
+  GLIF: Generalised Leaky Integrate-and-Fire (Allen baseline)
+  VTrace: voltage trace array, shape (n_timesteps,), units mV
+
+PATHS:
+  root: mayalucia/domains/bravli/inference/
+  posteriors: {root}data/posteriors/{cell_id}/
+
+INTERFACES:
+  HH.simulate: (params: HHParams, protocol: StimProtocol) -> VTrace
+  HH.log_likelihood: (params: HHParams, observed: VTrace, ...) -> float
+
+CONVENTIONS:
+  claims: tagged VERIFIED/INFERRED/ESTIMATED/SPECULATIVE
+  tests: pytest, one test file per module
+
+ASSUMPTIONS:
+  # (as detailed in §Assumption Ledger above)
+#+end_src
+
+The glossary serves three functions simultaneously:
+
+1. *Dependency schema*: INTERFACES declares what agents can assume
+   exists. ASSUMPTIONS declares what agents must assume is true.
+   Together, they constitute the project's dependency contract.
+
+2. *Token compression*: early specs are verbose ("run the
+   Hodgkin-Huxley simulator defined in =src/model/hh.py=, function
+   =simulate_hh(params: HHParams, protocol: StimProtocol) ->
+   VTrace="). Mature specs are terse ("=HH.simulate= on
+   =posterior/{cell_id}="). The glossary resolves the rest. This
+   mirrors how human teams build shared language over time.
+
+3. *Coordination device*: the glossary is /append-mostly/, updated
+   only at review gates. This prevents agents from silently
+   redefining interfaces or introducing competing conventions.
+   Agents /propose/ glossary additions; the scientist /approves/
+   them.
+
+
+* The Governance Difference
+
+Industrial orchestrators and scientific swarms differ not just in
+what they track but in how they govern.
+
+** Gas Town: Mechanistic Governance
+
+Gas Town is governed by two principles:
+
+- *GUPP* (Gas Town Universal Propulsion Principle): "If there is
+  work on your hook, YOU MUST RUN IT." No asking for confirmation.
+  Agents are pistons.
+
+- *NDI* (Nondeterministic Idempotence): the path is unpredictable,
+  but the outcome must be idempotent. The work item gets done.
+
+Quality comes from the Refinery: sequential rebase-test-merge.
+The question is: "did the tests pass?"
+
+** MayaDevGenZ: Epistemic Governance
+
+MayaDevGenZ is governed by different principles:
+
+- *Review gates*: the scientist approves before downstream work
+  begins. Not every action --- that would be micromanagement ---
+  but every /decision/ that shapes downstream assumptions.
+
+- *Uncertainty tagging*: every claim produced by an agent carries
+  an epistemic tag:
+
+#+begin_table
+| Tag          | Meaning                                         |
+|--------------+-------------------------------------------------|
+| VERIFIED     | Cross-checked against authoritative source      |
+| INFERRED     | Logically derived from verified information     |
+| ESTIMATED    | Best guess based on partial information         |
+| SPECULATIVE  | Hypothesis without strong support               |
+| UNKNOWN      | Acknowledged gap in knowledge                   |
+#+end_table
+
+- *Priority ordering*: when constraints conflict, truthfulness
+  takes precedence over intent, intent over style, style over
+  completeness. An agent that produces a shorter, more honest
+  answer is preferred over one that produces a longer, more
+  polished answer that papers over uncertainty.
+
+The governance question is not "did tests pass?" but "is this
+claim /known/ or /inferred/?" Both are quality mechanisms. One is
+automatable. The other requires human judgment.
+
+For science, the second is the one that matters. A test can pass
+while the underlying model is wrong. 29 quantitative claims each
+backed by inline test badges is not the same as "CI passed."
+
+** The Asymmetry of Questioning
+
+The assumption ledger introduces a deliberate governance asymmetry:
+
+- Any agent can escalate an assumption from =ACTIVE= to =QUESTIONED=
+- Only the scientist can de-escalate from =QUESTIONED= to =ACTIVE=
+- Any agent can escalate from =QUESTIONED= to =INVALIDATED=
+- Only the scientist can restart from =INVALIDATED=
+
+This ensures assumptions are easy to challenge and hard to reinstate.
+In Gas Town, GUPP means agents execute without questioning. In
+MayaDevGenZ, /questioning is a first-class action/. The Critic agent's
+primary job is not to produce code but to /test the assumption
+ledger/.
+
+
+* Form Factor: Plain Text, Not Databases
+
+The assumption ledger, the three-faced convention, and the glossary
+are all plain text files in git.
+
+This is a deliberate design choice. Gas Town's state lives in Dolt, a
+Git-for-data database. Each bead has ~81 fields. Agents access state
+via MCP tools (=create_issue=, =update_issue=, =list_issues=) or
+=bd prime= (generates ~1--2k token workflow summaries). The state is
+/machine-first, human-accessible/.
+
+Our state is /human-first, machine-parseable/. A scientist should be
+able to open any file in the project and understand it without
+tooling. The assumption ledger is YAML inside an Org file --- not a
+database, but structured enough that an agent can query it. The
+three-faced convention uses Org tags that support =org-match= for
+filtered views. The glossary is a flat file that both humans and
+agents read directly.
+
+The infrastructure comparison:
+
+#+begin_table
+| Component         | Gas Town                    | MayaDevGenZ               |
+|-------------------+-----------------------------+---------------------------|
+| State store       | Dolt (Git-for-data DB)      | Org files in git          |
+| Access protocol   | MCP tools, SQL queries      | Read the file             |
+| Dependency model  | 19 bead link types          | Assumption ledger + tags  |
+| Compression       | =bd prime= (LLM summaries) | Glossary shorthand        |
+| Durability        | Dolt + JSONL export         | git history               |
+| Infrastructure    | Dolt server, MCP, tmux      | git, text editor          |
+| Setup cost        | Clone + configure + serve   | Clone + read CLAUDE.md    |
+#+end_table
+
+The tradeoff is real. Gas Town's infrastructure enables capabilities
+we cannot match: 81-field beads support queries we cannot express,
+Dolt enables rollback at the record level, MCP enables programmatic
+state manipulation. But the infrastructure cost is also real: "275k
+lines of code for a markdown todo app" (as one Hacker News commenter
+observed).
+
+For a lone scientist, the calculus is clear. The scientist /is/ the
+infrastructure team. Every component they cannot understand is a
+component they cannot debug. Plain text in git is not a limitation ---
+it is a design requirement.
+
+
+* What This Does Not Solve
+
+We are honest about the gaps.
+
+** Durable Execution
+
+We propose checkpoints (structured Org sections that an arriving
+agent can parse and resume from) but have not built or tested them.
+Gas Town's =gt handoff= is a working solution to context-window
+exhaustion. Ours is a design.
+
+** Parallel Merge Strategy
+
+Our parallel execution strategy for the HH inference engagement is
+"partition by data, share code read-only" --- each Fitter agent
+writes to its own =posteriors/{cell_id}/= directory. This works
+when tasks are embarrassingly parallel. It does not address concurrent
+work on shared code, which is the problem Gas Town's Refinery
+solves.
+
+** The Guide Agent
+
+The orchestrator that would route tasks to specialised agents,
+manage handoffs, and present synthesis at review gates is specified
+(in =agency/agency.org=) but not implemented. Until we build it,
+multi-agent coordination requires the scientist to manually invoke
+agents and manage context --- which works for 2--3 agents but does
+not scale.
+
+** Scale
+
+We have tested these ideas with 2--3 concurrent agents on
+independent submodules. We have not tested them with 7 agents on a
+shared codebase, which is what the HH inference engagement requires.
+Gas Town has tested at 20--30 concurrent agents. The gap in
+operational experience is significant.
+
+These are real limitations. We believe the epistemic dependency
+model is sound and that the mechanisms are lightweight enough to
+implement incrementally. But shipping a design is not shipping a
+system.
+
+
+* Conclusion
+
+Scientific agent swarms need dependency tracking, but not the kind
+that industrial orchestrators provide.
+
+Operational dependencies --- what blocks what --- are necessary but
+not sufficient. They tell you when to start a task. They do not tell
+you whether the task's output is scientifically valid. A bead can be
+DONE while the science it represents is broken.
+
+Epistemic dependencies --- what assumes what, how certain it is, what
+breaks if it fails --- are the dependencies that matter for science.
+They are invisible to every existing orchestrator. We propose making
+them explicit through three lightweight mechanisms:
+
+1. *The Assumption Ledger*: a structured section in the project
+   glossary where every modelling assumption is declared, its
+   invalidation conditions pre-registered, and its status tracked.
+   Agents can question assumptions; only the scientist can
+   reinstate them.
+
+2. *The Three-Faced Convention*: every pipeline stage documented in
+   three views (discuss/plan/spec) that make dependencies traceable,
+   auditable, and machine-extractable without leaving the version-
+   controlled source document.
+
+3. *The Self-Organising Glossary*: a living document that serves as
+   dependency schema, token compression dictionary, and coordination
+   device. Append-mostly, updated at review gates, growing the
+   project's shared language over time.
+
+These mechanisms compose. The glossary's ASSUMPTIONS section is the
+assumption ledger. The three-faced convention's =plan= sections
+declare which assumptions each stage inherits. The =spec= sections
+encode them as machine-readable constraints. The Critic agent tests
+them. The scientist adjudicates.
+
+The machinery is lightweight: an Org file, uncertainty tags, review
+gates, and the discipline to pre-register invalidation conditions
+before downstream work begins. No databases, no servers, no custom
+protocols. Plain text in git.
+
+Industrial orchestrators optimise for throughput. Scientific swarms
+must optimise for /epistemic integrity/ --- the assurance that when
+a pipeline says "this neuron's sodium conductance is 120 mS/cm^{2}
+with 95% posterior interval [105, 138]," every assumption
+underlying that claim is explicit, every one has been tested, and
+the scientist knows exactly which ones are still standing.
+
+The factory asks: "is the work done?" The workshop asks: "is the
+work /true/?"
+
+#+begin_quote
+/Jheeni jheeni beeni chadariya/
+Finely, finely woven is this shawl ---
+What is its warp, what is its weft,
+What thread was this shawl woven from?
+--- Kabir
+#+end_quote
+
+
+* References
+
+- Yegge, Steve. "Welcome to Gas Town." Medium, January 2026.
+- Yegge, Steve. "Gas Town Emergency User Manual." Medium, 2026.
+- Yegge, Steve. "The Future of Coding Agents." Medium, 2026.
+- Brinker, Andrew Lilley. "Gas Town Decoded." 2026.
+- Ray, Brian. "From Conductors to Orchestrators." O'Reilly, March 2025.
+- MayaDevGenI. =agency/agency.org=. 2025--2026.
+- MayaDevGenI. =develop/hh-inference-swarm.org=. February 2026.
+- MayaDevGenI. =develop/gas-town-assessment.org=. February 2026.
+- MayaDevGenI. =develop/scientist-swarm.org=. February 2026.
+- MayaDevGenI. =develop/system-prompt/collaborative-intelligence/=. 2025--2026.
+
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:
